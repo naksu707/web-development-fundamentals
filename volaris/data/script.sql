@@ -6,6 +6,7 @@ CREATE TYPE estado_reserva AS ENUM ('PENDIENTE', 'CONFIRMADA', 'CANCELADA', 'COM
 CREATE TYPE tipo_pqr AS ENUM ('PETICION', 'QUEJA', 'RECLAMO', 'SUGERENCIA');
 CREATE TYPE estado_pqr AS ENUM ('PENDIENTE', 'EN_PROCESO', 'RESUELTO', 'CERRADO');
 CREATE TYPE tipo_salida_enum AS ENUM ('LOCAL', 'NACIONAL', 'INTERNACIONAL');
+CREATE TYPE tipo_documento AS ENUM ('CC', 'CE', 'PASAPORTE', 'NIT');
 
 -- ============================================================
 -- 2. CREACIÓN DE TABLAS
@@ -13,10 +14,18 @@ CREATE TYPE tipo_salida_enum AS ENUM ('LOCAL', 'NACIONAL', 'INTERNACIONAL');
 
 CREATE TABLE usuarios (
     id SERIAL PRIMARY KEY,
+    tipo_doc tipo_documento NOT NULL,
+    numero_doc VARCHAR(20) NOT NULL UNIQUE,
     nombre VARCHAR(100) NOT NULL,
-    email VARCHAR(150) UNIQUE NOT NULL,
+    apellido VARCHAR(100),
+    genero VARCHAR(20),
+    numero_telefono VARCHAR(20),
+    email VARCHAR(150) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    rol rol_usuario DEFAULT 'CLIENTE',
+    rol rol_usuario NOT NULL DEFAULT 'CLIENTE',
+    pais VARCHAR(100) DEFAULT 'Colombia',
+    departamento_provincia VARCHAR(100),
+    imagen_url TEXT,
     fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

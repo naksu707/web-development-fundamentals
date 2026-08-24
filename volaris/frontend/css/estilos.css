@@ -134,6 +134,41 @@ body {
     object-fit: contain;
 }
 
+/* --- ESTILOS DE USUARIO AUTENTICADO --- */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: #1e293b;
+}
+
+.btn-logout {
+    background-color: #ff3838;
+    color: #ffffff;
+    border: none;
+    outline: none;
+    padding: 8px 16px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-logout:hover {
+    background-color: #ce1212;
+    color: #ffffff;
+}
+
+.btn-logout:active {
+    transform: scale(0.98);
+}
+
 /* --- 2. BANNER PRINCIPAL (HERO) --- */
 .hero-banner {
     position: relative;

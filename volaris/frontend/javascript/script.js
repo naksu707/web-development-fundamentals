@@ -105,3 +105,35 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const sessionContainer = document.getElementById('user-session-container');
+
+    const usuarioGuardado = localStorage.getItem('usuario');
+    const tokenGuardado = localStorage.getItem('token');
+
+    if (sessionContainer && usuarioGuardado && tokenGuardado) {
+        const usuario = JSON.parse(usuarioGuardado);
+
+        const esPaginaPerfil = window.location.pathname.endsWith('perfil.html');
+        const activeClass = esPaginaPerfil ? 'active' : '';
+
+        sessionContainer.innerHTML = `
+            <div class="user-info">
+                <a href="perfil.html" class="user-name ${activeClass}">
+                    Hola, ${usuario.nombre.split(' ')[0]}
+                </a>
+                <button id="btn-logout" class="btn-logout">Cerrar sesión</button>
+            </div>
+        `;
+
+        const btnLogout = document.getElementById('btn-logout');
+        if (btnLogout) {
+            btnLogout.addEventListener('click', () => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('usuario');
+                window.location.href = 'index.html';
+            });
+        }
+    }
+});

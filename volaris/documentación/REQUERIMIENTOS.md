@@ -72,7 +72,7 @@
 
 | Entidad | Descripción | Campos Clave |
 | :--- | :--- | :--- |
-| **Usuarios** | Registra los datos de acceso y roles | `id`, `nombre`, `email`, `password_hash`, `rol`, `fecha_registro` |
+| **Usuarios** | Registra los datos de acceso y roles | `id`, `tipo_doc`, `numero_doc`, `nombre`, `apellido`, `genero`, `numero_telefono`, `email`, `password_hash`, `rol`, `pais`,`departamento_provincia`, `imagen_url`, `fecha_registro` |
 | **Agencias** | Información de empresas proveedoras de tours | `id`, `nombre_agencia`, `contacto`, `nit` |
 | **Viajes** | Oferta de vuelos y paquetes | `id`, `agencia_id`, `origen`, `destino`, `tipo_salida`, `fecha_salida`, `cupos_totales`, `cupos_disponibles`, `precio_base`, `imagen_url` |
 | **Reservas** | Transacciones de compra de cupos | `id`, `usuario_id`, `viaje_id`, `fecha_reserva`, `precio_final`, `estado` |

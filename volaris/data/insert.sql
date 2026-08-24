@@ -12,22 +12,47 @@ INSERT INTO agencias (id, nombre_agencia, contacto, nit) VALUES
 
 SELECT setval('agencias_id_seq', (SELECT MAX(id) FROM agencias));
 
+
 -- B. USUARIOS (150 REGISTROS: 5 AGENCIAS + 145 CLIENTES)
-INSERT INTO usuarios (nombre, email, password_hash, rol)
+
+-- 1. Insertar Agencias en Usuarios
+INSERT INTO usuarios (tipo_doc, numero_doc, nombre, apellido, email, password_hash, rol, numero_telefono, pais, departamento_provincia, imagen_url)
 SELECT 
+    'NIT'::tipo_documento,
+    '900' || LPAD(a.id::text, 6, '0'),
     a.nombre_agencia,
-    'admin@' || LOWER(REPLACE(a.nombre_agencia, ' ', '')) || '.com',
+    'S.A.S.',
+    'admin@' || LOWER(REPLACE(REPLACE(a.nombre_agencia, ' ', ''), 'á', 'a')) || '.com',
     '$2b$12$eImiTXuWVxfM37uY4JANjO3p9qE4a.gE8N4wN8xHkY4z4L4w4L4w4',
-    'AGENCIA'::rol_usuario
+    'AGENCIA'::rol_usuario,
+    '+57 601 ' || (3000000 + a.id)::text,
+    'Colombia',
+    'Bogotá D.C.',
+    'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=600&q=80'
 FROM agencias a;
 
-INSERT INTO usuarios (nombre, email, password_hash, rol)
+-- 2. Insertar Clientes
+INSERT INTO usuarios (tipo_doc, numero_doc, nombre, apellido, genero, numero_telefono, email, password_hash, rol, pais, departamento_provincia, imagen_url)
 SELECT 
-    'Usuario ' || i,
-    'usuario' || i || '@gmail.com',
+    'CC'::tipo_documento,
+    (1000000000 + i)::text,
+    n.nombre,
+    a.apellido,
+    (ARRAY['MASCULINO', 'FEMENINO', 'OTRO'])[((i - 1) % 3) + 1],
+    '+57 31' || (00000000 + i)::text,
+    LOWER(n.nombre) || '.' || LOWER(a.apellido) || i || '@gmail.com',
     '$2b$12$eImiTXuWVxfM37uY4JANjO3p9qE4a.gE8N4wN8xHkY4z4L4w4L4w4',
-    'CLIENTE'::rol_usuario
-FROM generate_series(1, 145) AS i;
+    'CLIENTE'::rol_usuario,
+    'Colombia',
+    (ARRAY['Valle del Cauca', 'Antioquia', 'Cundinamarca', 'Santander', 'Atlántico'])[((i - 1) % 5) + 1],
+    'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80'
+FROM generate_series(1, 145) AS i
+CROSS JOIN LATERAL (
+    SELECT (ARRAY['Carlos', 'María', 'Alejandro', 'Sofia', 'Juan', 'Valentina', 'Mateo', 'Camila', 'Andrés', 'Daniela', 'Mariana', 'Santiago', 'David', 'Paula', 'Gabriel'])[((i - 1) % 15) + 1] AS nombre
+) n
+CROSS JOIN LATERAL (
+    SELECT (ARRAY['Gómez', 'Rodríguez', 'López', 'García', 'Martínez', 'Pérez', 'Torres', 'Ramírez', 'Vargas', 'Ríos', 'Morales', 'Castro', 'Mendoza', 'Herrera', 'Ortega'])[((i - 1) % 15) + 1] AS apellido
+) a;
 
 -- C. VIAJES (200 REGISTROS)
 -- Insertar los primeros 6 viajes con su tipo_salida asignado
