@@ -21,3 +21,12 @@
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
 }
+
+.nav-link-custom {
+    display: inline-flex;
+    align-items: center;
+}
+
+.nav-link-custom.active::after {
+    width: 100%;
+}

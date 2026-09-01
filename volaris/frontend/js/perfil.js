@@ -310,7 +310,7 @@ function renderizarNavbarSesion(usuario) {
 
     container.innerHTML = `
         <div class="d-flex align-items-center gap-3">
-            <a href="perfil.html" class="nav-link-custom fw-bold text-dark fs-6 text-decoration-none d-flex align-items-center active border-bottom border-danger border-2 pb-1">
+            <a href="perfil.html" class="nav-link-custom active fw-bold text-dark fs-6 text-decoration-none d-flex align-items-center">
                 <i class="fa-solid fa-user text-danger me-2"></i>${usuario.nombre || 'Usuario'}
             </a>
             <button type="button" class="btn btn-volaris btn-sm fw-semibold px-3 py-1 rounded-3" id="btn-logout">
