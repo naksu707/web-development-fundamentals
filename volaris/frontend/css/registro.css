@@ -1,0 +1,128 @@
+:root {
+    --volaris-primary: #E8442C;
+    --volaris-primary-hover: #cf3a25;
+    --volaris-text: #4a4a4a;
+    --volaris-border: #f0a99a;
+}
+
+/* Labels */
+.form-label {
+    color: var(--volaris-text);
+    font-size: 0.95rem;
+    margin-bottom: 0.4rem;
+}
+
+/* Inputs y selects */
+#registro-form .form-control,
+#registro-form .form-select {
+    border: 1.5px solid var(--volaris-border);
+    border-radius: 0.5rem;
+    padding: 0.65rem 1rem;
+    font-size: 0.95rem;
+    color: var(--volaris-text);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#registro-form .form-control::placeholder {
+    color: #c9a9a3;
+}
+
+#registro-form .form-control:focus,
+#registro-form .form-select:focus {
+    border-color: var(--volaris-primary);
+    box-shadow: 0 0 0 0.2rem rgba(232, 68, 44, 0.15);
+}
+
+/* Flecha personalizada del select */
+#registro-form .form-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%23E8442C' d='M8 11 3 6h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 14px;
+}
+
+/* Estados de validación (Bootstrap) */
+#registro-form .form-control.is-invalid,
+#registro-form .form-select.is-invalid {
+    border-color: #dc3545;
+}
+
+#registro-form .form-control.is-valid,
+#registro-form .form-select.is-valid {
+    border-color: #198754;
+}
+
+/* Input de archivo (foto de perfil) — mismo estilo, altura consistente */
+#registro-form input[type="file"].form-control {
+    padding: 0.5rem 1rem;
+    line-height: 1.6;
+}
+
+/* Checkbox de términos */
+#registro-form .form-check-input {
+    width: 1.2em;
+    height: 1.2em;
+    border: 1.5px solid var(--volaris-border);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+#registro-form .form-check-input:checked {
+    background-color: var(--volaris-primary);
+    border-color: var(--volaris-primary);
+}
+
+#registro-form .form-check-label {
+    font-size: 0.9rem;
+    color: var(--volaris-text);
+}
+
+#registro-form .form-check-label a {
+    color: var(--volaris-primary);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+#registro-form .form-check-label a:hover {
+    text-decoration: underline;
+}
+
+/* Botón principal (reutiliza tu clase .btn-volaris si ya existe en estilos.css;
+   si no, esto la define) */
+.btn-volaris {
+    background-color: var(--volaris-primary);
+    border-color: var(--volaris-primary);
+    color: #fff;
+    border-radius: 0.5rem;
+    letter-spacing: 0.03em;
+}
+
+.btn-volaris:hover {
+    background-color: var(--volaris-primary-hover);
+    border-color: var(--volaris-primary-hover);
+    color: #fff;
+}
+
+/* Botón de Google */
+#btn-google {
+    border-radius: 0.5rem;
+    border-width: 1.5px;
+}
+
+#btn-google i {
+    color: #E8442C;
+}
+
+/* Separador "o" */
+main p.text-center.text-muted {
+    font-size: 0.85rem;
+}
+
+/* Responsive: en móvil el formulario respira mejor con un poco más de padding */
+@media (max-width: 767.98px) {
+    #registro-form {
+        padding: 0 0.5rem;
+    }
+}

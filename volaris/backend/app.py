@@ -10,7 +10,7 @@ from db import get_db_connection
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=["http://127.0.0.1:5500", "http://localhost:5500"])
 bcrypt = Bcrypt(app)
 
 SECRET_KEY = "volaris_secreto_super_seguro_2026_key_desarrollo"
@@ -99,7 +99,7 @@ def registrar_usuario():
     try:
         cur.execute("SELECT id FROM usuarios WHERE email = %s;", (email,))
         if cur.fetchone():
-            return jsonify({"error": "El correo electrónico ingresado ya se encuentra registrado."}), 400
+            return jsonify({"error": "El correo electrónico ingresado ya se encuentra registrado."}), 409
 
         cur.execute(
             """
@@ -137,7 +137,7 @@ def registrar_usuario():
         else:
             mensaje = "No se pudo realizar el registro con los datos ingresados."
 
-        return jsonify({"error": mensaje}), 400
+        return jsonify({"error": mensaje}), 409
 
     except Exception as e:
         conn.rollback()
@@ -189,8 +189,13 @@ def login():
             "usuario": {
                 "id": usuario["id"],
                 "nombre": usuario["nombre"],
+                "apellido": usuario["apellido"],
                 "email": usuario["email"],
+                "numero_telefono": usuario["numero_telefono"],
+                "genero": usuario["genero"],
                 "rol": usuario["rol"],
+                "imagen_url": usuario["imagen_url"],
+                "fecha_registro": usuario["fecha_registro"].isoformat() if usuario.get("fecha_registro") else None
             },
         }), 200
 
@@ -216,11 +221,9 @@ def google_login():
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        # Verificar si el usuario ya existe
         cur.execute("SELECT * FROM usuarios WHERE email = %s;", (email,))
         usuario = cur.fetchone()
 
-        # Si no existe, se crea automáticamente con rol CLIENTE
         if not usuario:
             password_dummy = bcrypt.generate_password_hash("GoogleAuth_SecurePassword").decode("utf-8")
             cur.execute(
@@ -234,7 +237,6 @@ def google_login():
             usuario = cur.fetchone()
             conn.commit()
 
-        # Generar token JWT
         payload = {
             "id": usuario["id"],
             "nombre": usuario["nombre"],
@@ -265,6 +267,126 @@ def google_login():
         cur.close()
         conn.close()
 
+# ==========================================
+# HU-03: CONSULTA DE PERFIL Y VIAJES
+# ==========================================
+@app.route("/api/reservas/usuario/<int:usuario_id>", methods=["GET"])
+def obtener_reservas_usuario(usuario_id):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, nombre, apellido, email, numero_telefono, genero, rol, imagen_url, fecha_registro 
+            FROM usuarios WHERE id = %s;
+        """, (usuario_id,))
+        usuario = cur.fetchone()
+
+        if not usuario:
+            return jsonify({"error": "Usuario no encontrado"}), 404
+
+        if usuario.get("fecha_registro"):
+            usuario["fecha_registro"] = usuario["fecha_registro"].isoformat()
+
+        cur.execute("""
+            SELECT 
+                r.id AS id_reserva,
+                r.estado AS estado_reserva,
+                r.precio_final,
+                TO_CHAR(r.fecha_reserva, 'HH12:MI AM / Month DD, YYYY') AS fecha_reserva_formateada,
+                v.id AS id_viaje,
+                v.destino,
+                v.origen,
+                v.imagen_url
+            FROM reservas r
+            JOIN viajes v ON r.viaje_id = v.id
+            WHERE r.usuario_id = %s
+            ORDER BY r.fecha_reserva DESC;
+        """, (usuario_id,))
+
+        reservas = cur.fetchall()
+
+        return jsonify({
+            "usuario": usuario,
+            "reservas": reservas
+        }), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en obtener_reservas_usuario: {e}")
+        return jsonify({"error": "Error interno del servidor."}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+# ==========================================
+# ACTUALIZAR DATOS COMPLETOS DE PERFIL
+# ==========================================
+@app.route("/api/auth/perfil/<int:usuario_id>", methods=["PUT"])
+def actualizar_perfil(usuario_id):
+    nombre = request.form.get("nombre", "").strip()
+    apellido = request.form.get("apellido", "").strip()
+    numero_telefono = request.form.get("numero_telefono", "").strip() or None
+    genero = request.form.get("genero", "").strip() or None
+    password = request.form.get("password", "").strip()
+
+    if not nombre:
+        return jsonify({"error": "El nombre es obligatorio."}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("SELECT numero_doc, password_hash, imagen_url, fecha_registro FROM usuarios WHERE id = %s;", (usuario_id,))
+        usuario_actual = cur.fetchone()
+
+        if not usuario_actual:
+            return jsonify({"error": "Usuario no encontrado."}), 404
+
+        imagen_url = usuario_actual["imagen_url"]
+        if 'imagen' in request.files:
+            file = request.files['imagen']
+            if file and file.filename != '':
+                filename = secure_filename(f"{usuario_actual['numero_doc']}_{file.filename}")
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+                imagen_url = f"/uploads/{filename}"
+
+        password_hash = usuario_actual["password_hash"]
+        if password:
+            if len(password) < 8:
+                return jsonify({"error": "La nueva contraseña debe tener al menos 8 caracteres."}), 400
+            password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
+
+        cur.execute(
+            """
+            UPDATE usuarios 
+            SET nombre = %s, apellido = %s, numero_telefono = %s, genero = %s, imagen_url = %s, password_hash = %s
+            WHERE id = %s
+            RETURNING id, nombre, apellido, email, numero_telefono, genero, rol, imagen_url, fecha_registro;
+            """,
+            (nombre, apellido, numero_telefono, genero, imagen_url, password_hash, usuario_id)
+        )
+        usuario_actualizado = cur.fetchone()
+        if usuario_actualizado.get("fecha_registro"):
+            usuario_actualizado["fecha_registro"] = usuario_actualizado["fecha_registro"].isoformat()
+
+        conn.commit()
+
+        return jsonify({
+            "mensaje": "Perfil actualizado correctamente",
+            "usuario": usuario_actualizado
+        }), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al actualizar perfil: {e}")
+        return jsonify({"error": "Ocurrió un error en el servidor."}), 500
+
+    finally:
+        cur.close()
+        conn.close()
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

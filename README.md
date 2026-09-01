@@ -96,6 +96,21 @@ A complete interactive web application for a traditional stuffed arepas restaura
 ### 4. Volaris 
 IN PROCESS
 
+> **Note for Running the Project:**
+> To properly run this project, update your VS Code settings. Access the settings by pressing `Ctrl + Shift + P`, search for **Open User Settings (JSON)**, and add or update the following configuration:
+>
+> ```json
+> "liveServer.settings.ignoreFiles": [
+>     "**/.vscode/**",
+>     "**/*.scss",
+>     "**/uploads/**"
+> ]
+> ```
+
+<p align="center">
+    <img src="/img/update-golive-settings.png" width="750" alt="Volaris Preview">
+</p>
+
 <p align="center">
     <img src="/img/preview-volaris.png" width="750" alt="Volaris Preview">
 </p>

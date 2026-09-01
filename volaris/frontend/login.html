@@ -3,43 +3,93 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Volaris - Tendencias</title>
+    <title>Volaris - Iniciar Sesión</title>
     <link rel="icon" type="image/webp" href="assets/iconos/icon.png">
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/estilos.css">
-    <link rel="stylesheet" href="css/auth.css">
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <link rel="stylesheet" href="css/login.css">
 </head>
-<body>
-    <header class="navbar">
-        <a href="index.html" class="logo-link">
-            <div class="logo">
-                <img src="/volaris/frontend/assets/iconos/icon.png" alt="Logo Volaris" />
-                <span>Volaris</span>
+<body class="d-flex flex-column min-vh-100">
+
+    <header class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm py-2">
+        <div class="container-fluid px-4 px-lg-5">
+            <a href="index.html" class="navbar-brand logo-link d-flex align-items-center gap-2">
+                <img src="/volaris/frontend/assets/iconos/icon.png" alt="Logo Volaris" width="35" height="35" class="d-inline-block align-text-top">
+                <span class="fw-bold fs-4 text-dark">Volaris</span>
+            </a>
+            
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVolaris" aria-controls="navbarVolaris" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse mt-3 mt-lg-0" id="navbarVolaris">
+                <nav class="nav-links ms-auto d-flex flex-column flex-lg-row align-items-center align-items-lg-center justify-content-center justify-content-lg-end text-center text-lg-start gap-3 gap-lg-4 pb-3 pb-lg-0">
+                    <a href="/volaris/frontend/viajes.html" class="nav-link-custom text-nowrap">Explorar Viajes</a>
+                    <a href="/volaris/frontend/pqr.html" class="nav-link-custom text-nowrap">Soporte y Reseñas</a>
+                    <a href="/volaris/frontend/tendencias.html" class="nav-link-custom text-nowrap">Tendencias</a>
+                    <div id="user-session-container" class="ms-lg-2">
+                        <a href="login.html" class="btn btn-volaris px-4 fw-semibold text-nowrap" id="btn-login">Iniciar sesión</a>
+                    </div>
+                </nav>
             </div>
-        </a>
-         <button type="button" class="btn-hamburguesa" id="btn-hamburguesa">
-            <img src="assets/iconos/lista.png" alt="hamburguesa" class="icono">
-        </button>
-        <nav class="nav-links">
-            <a href="/volaris/frontend/viajes.html">Explorar Viajes</a>
-            <a href="/volaris/frontend/pqr.html">Soporte y Reseñas</a>
-            <a href="/volaris/frontend/tendencias.html">Tendencias</a>
-            <a href="/volaris/frontend/login.html" class="btn-login">Iniciar sesión</a>
-        </nav>
-    </header>
-    <footer class="footer">
-        <div class="social-links">
-            <span>Follow us</span>
-            <a href="https://www.instagram.com/__mjtx707/" target="_blank"><img src="/volaris/frontend/assets/iconos/instagram.png"><i class="fab fa-instagram"></i></a>
-            <a href="https://www.linkedin.com/in/mj-ospina707/" target="_blank"><img src="/volaris/frontend/assets/iconos/linkedin.png"><i class="fab fa-linkeding"></i></a>
         </div>
-        <hr>
-        <div class="footer-info">
-            <p>Cali, Colombia</p>
-            <p>&copy; 2026 Doofenshmirtz malvados S.A. All rights reserved.</p>
+    </header>
+
+    <main class="container my-auto py-5">
+        <div class="row justify-content-center">
+            <div class="col-11 col-sm-8 col-md-6 col-lg-4 text-center">
+                <h1 class="fw-bold text-dark mb-4 fs-3">Inicia Sesión, inicia tu viaje</h1>
+                <form id="login-form">
+                    <div class="mb-3">
+                        <input type="email" class="form-control border-danger border-opacity-50 text-secondary fs-6 py-2 px-3 rounded-3" id="correo" placeholder="Correo" required>
+                    </div>
+                    <div class="mb-3">
+                        <input type="password" class="form-control border-danger border-opacity-50 text-secondary fs-6 py-2 px-3 rounded-3" id="contrasena" placeholder="Contraseña" required>
+                    </div>
+                    <p class="small text-secondary mb-4">
+                        ¿Aún no tienes cuenta? <a href="registro.html" class="text-danger text-decoration-none fw-semibold">Regístrate Aquí</a>
+                    </p>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-volaris fw-bold text-uppercase py-2 rounded-3 fs-6">
+                            Iniciar Sesión
+                        </button>
+                        <button type="button" class="btn btn-outline-danger fw-bold text-uppercase py-2 rounded-3 fs-6 d-flex align-items-center justify-content-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 48 48">
+                                <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+                                <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+                                <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+                                <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+                            </svg>
+                            Iniciar con Google
+                        </button>
+                    </div>
+                    <p class="small text-secondary mt-4 mb-0">
+                        ¿Olvidaste tu contraseña? <a href="#" class="text-danger text-decoration-none fw-semibold">Clic Aquí</a>
+                    </p>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer mt-auto py-4 bg-light text-center text-muted">
+        <div class="container">
+            <div class="social-links d-flex justify-content-center align-items-center gap-3 mb-3">
+                <span class="fw-semibold me-1">Follow us</span>
+                <a href="https://www.instagram.com/__mjtx707/" target="_blank" class="social-icon"><i class="fab fa-instagram fs-4"></i></a>
+                <a href="https://www.linkedin.com/in/mj-ospina707/" target="_blank" class="social-icon"><i class="fab fa-linkedin fs-4"></i></a>
+            </div>
+            <hr class="w-75 mx-auto my-3 text-secondary opacity-25">
+            <div class="footer-info small">
+                <p class="mb-1">Cali, Colombia</p>
+                <p class="mb-0">&copy; 2026 Doofenshmirtz malvados S.A. All rights reserved.</p>
+            </div>
         </div>
     </footer>
-    <script src="javascript/script.js"></script>
-    <script src="javascript/login.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="js/login.js"></script>
 </body>
 </html>
