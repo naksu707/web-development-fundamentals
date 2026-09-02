@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         if (heroBtn) {
-            heroBtn.href = `destino-detalle.html?id=${viaje.id || viaje.id_viaje || index + 1}`;
+            heroBtn.href = `detalle-viaje.html?id=${viaje.id || viaje.id_viaje || index + 1}`;
         }
 
         const urlImagen = viaje.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80';
@@ -140,3 +140,4 @@ function renderizarNavbarSesion() {
 }
 
 renderizarNavbarSesion();
+

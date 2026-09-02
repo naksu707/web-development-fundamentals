@@ -45,10 +45,21 @@ CREATE TABLE viajes (
     categoria VARCHAR(50),
     descripcion TEXT,
     fecha_salida DATE NOT NULL,
+    fecha_llegada DATE,
+    duracion_dias INT CHECK (duracion_dias > 0),
     cupos_totales INT NOT NULL CHECK (cupos_totales >= 0),
     cupos_disponibles INT NOT NULL CHECK (cupos_disponibles >= 0),
     precio_base NUMERIC(10, 2) NOT NULL CHECK (precio_base >= 0),
     imagen_url TEXT
+);
+
+CREATE TABLE itinerarios (
+    id SERIAL PRIMARY KEY,
+    viaje_id INT REFERENCES viajes(id) ON DELETE CASCADE,
+    dia_numero INT NOT NULL CHECK (dia_numero > 0),
+    titulo VARCHAR(150),
+    descripcion TEXT,
+    hora_inicio TIME
 );
 
 CREATE TABLE reservas (
@@ -95,5 +106,6 @@ CREATE TABLE estadisticas_mensuales (
 -- ============================================================
 CREATE INDEX idx_viajes_origen_destino ON viajes(origen, destino);
 CREATE INDEX idx_viajes_busqueda ON viajes(fecha_salida, cupos_disponibles);
+CREATE INDEX idx_itinerarios_viaje ON itinerarios(viaje_id);
 CREATE INDEX idx_pqr_codigo ON pqr(codigo_radicado);
 CREATE INDEX idx_reservas_usuario ON reservas(usuario_id);

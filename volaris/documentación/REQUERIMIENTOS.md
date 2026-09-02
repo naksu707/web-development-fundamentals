@@ -59,23 +59,31 @@
 ## 3. Modelo de Datos Relacional (Esquema Resumido)
 
 ```text
-[Usuarios] 1 --- N [Reservas] N --- 1 [Viajes] N --- 1 [Agencias]
-   |                     |              |
-   |--- N [PQR]          |--- 1 [Comentarios]
+[Agencias] 1 ------- N [Viajes] 1 ------- N [Itinerarios]
+                          |
+                          | 1
+                          |
+                          | N
+[Usuarios] 1 ------- N [Reservas]
+   |  |
+   |  +------------- N [Comentarios] (vía Reserva/Viaje)
    |
-   +--- 1 [Perfil]
+   +---------------- N [PQR]
+   |
+   +---------------- 1 [Perfil]
 
-[EstadisticasMensuales] (Tabla consolidada e independiente para Analítica)
+[EstadisticasMensuales] (Tabla independiente para Analítica)
 ```
 
 ### Tabla de Entidades Principales
 
 | Entidad | Descripción | Campos Clave |
 | :--- | :--- | :--- |
-| **Usuarios** | Registra los datos de acceso y roles | `id`, `tipo_doc`, `numero_doc`, `nombre`, `apellido`, `genero`, `numero_telefono`, `email`, `password_hash`, `rol`, `pais`,`departamento_provincia`, `imagen_url`, `fecha_registro` |
+| **Usuarios** | Registra los datos de acceso y roles | `id`, `tipo_doc`, `numero_doc`, `nombre`, `apellido`, `genero`, `numero_telefono`, `email`, `password_hash`, `rol`, `pais`, `departamento_provincia`, `imagen_url`, `fecha_registro` |
 | **Agencias** | Información de empresas proveedoras de tours | `id`, `nombre_agencia`, `contacto`, `nit` |
-| **Viajes** | Oferta de vuelos y paquetes | `id`, `agencia_id`, `origen`, `destino`, `tipo_salida`, `fecha_salida`, `cupos_totales`, `cupos_disponibles`, `precio_base`, `imagen_url` |
+| **viajes** | Oferta de vuelos y paquetes | `id`, `agencia_id`, `origen`, `destino`, `tipo_salida`, `categoria`, `descripcion`, `fecha_salida`, `fecha_llegada`, `duracion_dias`, `cupos_totales`, `cupos_disponibles`, `precio_base`, `imagen_url` |
+| **itinerarios** | Cronograma y actividades asociadas a cada viaje | `id`, `viaje_id`, `dia_numero`, `titulo`, `descripcion`, `hora_inicio` |
 | **Reservas** | Transacciones de compra de cupos | `id`, `usuario_id`, `viaje_id`, `fecha_reserva`, `precio_final`, `estado` |
 | **Comentarios** | Evaluaciones de viajes finalizados | `id`, `usuario_id`, `viaje_id`, `calificacion`, `mensaje`, `fecha` |
 | **PQR** | Módulo de atención a solicitudes | `id`, `codigo_radicado`, `usuario_id`, `reserva_id`, `tipo`, `descripcion`, `estado`, `respuesta` |
-| **EstadisticasMensuales** | Reportes consolidados para el Scroll Storytelling | `id`, `anio`, `mes`, `destino_top_id`, `total_reservas`, `ingresos_totales`, `datos_json` |
+| **EstadisticasMensuales** | Reportes consolidados para el Scroll storytelling | `id`, `anio`, `mes`, `destino_top_id`, `total_reservas`, `ingresos_totales`, `datos_json` |
