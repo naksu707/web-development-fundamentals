@@ -23,7 +23,11 @@ async function cargarDetalleViaje() {
         const destino = viaje.destino || "Destino por confirmar";
         
         document.getElementById("detalle-titulo").textContent = `${origen} a ${destino}`;
-        document.getElementById("badge-tipo").textContent = viaje.tipo_salida || "NACIONAL";
+        
+        const badgeTipo = document.getElementById("badge-tipo");
+        badgeTipo.textContent = viaje.tipo_salida || "NACIONAL";
+        badgeTipo.style.backgroundColor = "#ff3838";
+
         document.getElementById("badge-categoria").textContent = viaje.categoria || "General";
         document.getElementById("badge-agencia").innerHTML = `<i class="fas fa-building me-1"></i>${viaje.nombre_agencia || 'Volaris Partner'}`;
 
@@ -55,9 +59,9 @@ async function cargarDetalleViaje() {
         if (viaje.itinerario_dias && viaje.itinerario_dias.length > 0) {
             elemItinerario.className = "d-flex flex-column gap-3 bg-transparent p-0";
             elemItinerario.innerHTML = viaje.itinerario_dias.map(item => `
-                <div class="p-3 bg-light rounded-3 border-start border-4 border-danger shadow-sm">
+                <div class="p-3 bg-light rounded-3 border-start border-4 shadow-sm" style="border-left-color: #ff3838 !important;">
                     <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="badge bg-danger rounded-pill px-2 py-1">Día ${item.dia_numero}</span>
+                        <span class="badge rounded-pill px-2 py-1 text-white" style="background-color: #ff3838;">Día ${item.dia_numero}</span>
                         ${item.hora_inicio ? `<small class="text-muted fw-semibold"><i class="far fa-clock me-1"></i>${item.hora_inicio}</small>` : ''}
                     </div>
                     <h6 class="fw-bold text-dark mb-1">${item.titulo || 'Actividad del día'}</h6>
@@ -73,7 +77,9 @@ async function cargarDetalleViaje() {
 
         const precio = viaje.precio_base ?? viaje.precio;
         if (precio !== undefined && precio !== null) {
-            document.getElementById("detalle-precio").textContent = `$${Number(precio).toLocaleString('es-CO')} COP`;
+            const elemPrecio = document.getElementById("detalle-precio");
+            elemPrecio.textContent = `$${Number(precio).toLocaleString('es-CO')} COP`;
+            elemPrecio.style.color = "#ff3838";
         }
 
         const elemCupos = document.getElementById("detalle-cupos");
@@ -82,14 +88,31 @@ async function cargarDetalleViaje() {
         if (viaje.cupos_disponibles > 0) {
             elemCupos.className = "badge bg-success rounded-pill px-3 py-2 fs-6";
             elemCupos.textContent = `${viaje.cupos_disponibles} disponibles`;
+            
+            if (btnReservar) {
+                btnReservar.disabled = false;
+                btnReservar.style.backgroundColor = "#ff3838";
+                btnReservar.style.borderColor = "#ff3838";
+                btnReservar.onclick = (e) => {
+                    e.preventDefault();
+                    window.location.href = `formulario-reserva.html?id=${viajeId}`;
+                };
+            }
         } else {
             elemCupos.className = "badge bg-danger rounded-pill px-3 py-2 fs-6";
+            elemCupos.style.backgroundColor = "#ff3838";
             elemCupos.textContent = "Agotado";
             if (btnReservar) {
                 btnReservar.disabled = true;
+                btnReservar.style.backgroundColor = "#ff3838";
+                btnReservar.style.borderColor = "#ff3838";
                 btnReservar.textContent = "Sin cupos disponibles";
             }
         }
+
+        document.querySelectorAll(".text-danger").forEach(icono => {
+            icono.style.color = "#ff3838";
+        });
 
     } catch (error) {
         console.error("Error al obtener detalle del viaje:", error);

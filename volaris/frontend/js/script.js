@@ -1,3 +1,5 @@
+const PRIMARY_RED = '#ff3838';
+
 document.addEventListener('DOMContentLoaded', async () => {
     const API_URL = 'http://127.0.0.1:5000/api/viajes';
 
@@ -122,7 +124,7 @@ function renderizarNavbarSesion() {
         userSessionContainer.innerHTML = `
             <div class="d-flex align-items-center gap-3">
                 <a href="perfil.html" class="nav-link-custom fw-bold text-dark fs-6 text-decoration-none d-flex align-items-center">
-                    <i class="fa-solid fa-user text-danger me-2"></i>${nombreUsuario}
+                    <i class="fa-solid fa-user me-2" style="color: ${PRIMARY_RED};"></i>${nombreUsuario}
                 </a>
                 <button type="button" class="btn btn-volaris btn-sm fw-semibold px-3 py-1 rounded-3" id="btn-logout">
                     <i class="fa-solid fa-right-from-bracket me-1"></i>Cerrar sesión
@@ -140,4 +142,3 @@ function renderizarNavbarSesion() {
 }
 
 renderizarNavbarSesion();
-
