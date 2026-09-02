@@ -506,13 +506,13 @@ def obtener_sugerencias():
 
     try:
         cur.execute("""
-            SELECT DISTINCT destino AS lugar FROM viajes 
-            WHERE LOWER(TRANSLATE(destino, 'áéíóúÁÉÍÓÚ', 'aeiouAEIOU')) LIKE LOWER(TRANSLATE(%s, 'áéíóúÁÉÍÓÚ', 'aeiouAEIOU'))
-            UNION
-            SELECT DISTINCT origen AS lugar FROM viajes 
-            WHERE LOWER(TRANSLATE(origen, 'áéíóúÁÉÍÓÚ', 'aeiouAEIOU')) LIKE LOWER(TRANSLATE(%s, 'áéíóúÁÉÍÓÚ', 'aeiouAEIOU'))
+            SELECT DISTINCT destino AS lugar 
+            FROM viajes 
+            WHERE LOWER(TRANSLATE(destino, 'áéíóúñÁÉÍÓÚÑ', 'aeiounAEIOUN')) LIKE LOWER(TRANSLATE(%s, 'áéíóúñÁÉÍÓÚÑ', 'aeiounAEIOUN'))
+              AND fecha_salida >= CURRENT_DATE 
+              AND cupos_disponibles > 0
             LIMIT 5;
-        """, (f"%{query_texto}%", f"%{query_texto}%"))
+        """, (f"%{query_texto}%",))
 
         resultados = [row["lugar"] for row in cur.fetchall()]
         return jsonify(resultados), 200

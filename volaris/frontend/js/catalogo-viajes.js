@@ -21,7 +21,15 @@ function determinarTipoSalida(destinoBuscado) {
     if (!destinoBuscado) return "";
     const destinoClean = normalizarTexto(destinoBuscado);
     
-    const CIUDADES_COLOMBIA = ["bogota", "medellin", "cali", "barranquilla", "cartagena", "santa marta", "bucaramanga", "pereira", "manizales", "armenia", "cucuta", "ibague", "villavicencio", "pasto", "neiva", "popayan", "monteria", "sincelejo", "valledupar", "tunja", "florencia", "yopal", "quibdo", "san andres", "leticia", "eje cafetero", "salento", "quindio", "guatape", "parque del cafe"];
+    const CIUDADES_COLOMBIA = [
+        "bogota", "medellin", "cali", "barranquilla", "cartagena", "santa marta", 
+        "bucaramanga", "pereira", "manizales", "armenia", "cucuta", "ibague", 
+        "villavicencio", "pasto", "neiva", "popayan", "monteria", "sincelejo", 
+        "valledupar", "tunja", "florencia", "yopal", "quibdo", "san andres", 
+        "leticia", "eje cafetero", "salento", "quindio", "guatape", "parque del cafe",
+        "santa rosa", "santa rosa de cabal", "la guajira", "cabo de la vela", 
+        "cano cristales", "tatacoa", "desierto de la tatacoa", "amazonas"
+    ];
 
     if (CIUDADES_COLOMBIA.some(c => destinoClean.includes(c) || c.includes(destinoClean))) return "NACIONAL";
     return "INTERNACIONAL";

@@ -185,3 +185,4 @@ async function cargarCarruselDestacados() {
         console.error("Error al cargar destacados:", error);
     }
 }
+
