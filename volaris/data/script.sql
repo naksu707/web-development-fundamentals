@@ -64,11 +64,12 @@ CREATE TABLE itinerarios (
 
 CREATE TABLE reservas (
     id SERIAL PRIMARY KEY,
-    usuario_id INT REFERENCES usuarios(id) ON DELETE CASCADE,
-    viaje_id INT REFERENCES viajes(id) ON DELETE CASCADE,
+    codigo VARCHAR(20) UNIQUE,
+    usuario_id INTEGER REFERENCES usuarios(id) ON DELETE SET NULL,
+    viaje_id INTEGER NOT NULL REFERENCES viajes(id) ON DELETE CASCADE,
     fecha_reserva TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    precio_final NUMERIC(10, 2) NOT NULL CHECK (precio_final >= 0),
-    estado estado_reserva DEFAULT 'PENDIENTE'
+    precio_final NUMERIC(10, 2) NOT NULL,
+    estado VARCHAR(50) DEFAULT 'CONFIRMADA'
 );
 
 CREATE TABLE comentarios (

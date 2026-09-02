@@ -19,6 +19,13 @@ UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+PREFIJOS_AGENCIA = {
+    1: "CT",  # Agencia 1
+    2: "VL",  # Agencia 2 
+    3: "PS",  # Agencia 3
+    4: "VC"   # Agencia 4
+}
+
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -212,6 +219,8 @@ def login():
                 "id": usuario["id"],
                 "nombre": usuario["nombre"],
                 "apellido": usuario["apellido"],
+                "tipo_doc": usuario["tipo_doc"],      
+                "numero_doc": usuario["numero_doc"],   
                 "email": usuario["email"],
                 "numero_telefono": usuario["numero_telefono"],
                 "genero": usuario["genero"],
@@ -313,6 +322,7 @@ def obtener_reservas_usuario(usuario_id):
         cur.execute("""
             SELECT 
                 r.id AS id_reserva,
+                r.codigo AS codigo_reserva,
                 r.estado AS estado_reserva,
                 r.precio_final,
                 TO_CHAR(r.fecha_reserva, 'HH12:MI AM / Month DD, YYYY') AS fecha_reserva_formateada,
@@ -407,7 +417,7 @@ def actualizar_perfil(usuario_id):
     finally:
         cur.close()
         conn.close()
-        
+
 # ==========================================
 # HU-04: BUSCADOR DE VIAJES
 # ==========================================
@@ -535,7 +545,6 @@ def obtener_detalle_viaje(viaje_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        
         try:
             cur.execute("""
                 SELECT 
@@ -580,7 +589,222 @@ def obtener_detalle_viaje(viaje_id):
     finally:
         cur.close()
         conn.close()
+
+# ==========================================
+# HU-06 & HU-07: CONTROL DE CUPOS Y CREACIÓN DE RESERVAS
+# ==========================================
+@app.route("/api/reservas", methods=["POST"])
+def crear_reserva():
+    datos = request.get_json() or {}
+    viaje_id = datos.get("id_viaje") or datos.get("viaje_id")
+    cantidad_cupos = datos.get("cantidad_cupos", 1)
+
+    auth_header = request.headers.get("Authorization")
+    usuario_id = None
+    if auth_header and auth_header.startswith("Bearer "):
+        token = auth_header.split(" ")[1]
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            usuario_id = payload.get("id")
+        except jwt.PyJWTError:
+            pass
+
+    if not viaje_id or cantidad_cupos <= 0:
+        return jsonify({"error": "Parámetros de reserva inválidos."}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT id, agencia_id, precio_base, fecha_salida, cupos_disponibles 
+            FROM viajes 
+            WHERE id = %s 
+            FOR UPDATE;
+        """, (viaje_id,))
+        viaje = cur.fetchone()
+
+        if not viaje:
+            conn.rollback()
+            return jsonify({"error": "El viaje no existe o no está disponible."}), 404
+
+        cupos_disponibles = viaje["cupos_disponibles"]
+
+        if cupos_disponibles < cantidad_cupos:
+            conn.rollback()
+            return jsonify({
+                "error": f"Sin cupos suficientes. Solo quedan {cupos_disponibles} disponibles."
+            }), 409
+
+        precio_base = float(viaje["precio_base"] or 0)
+        fecha_salida = viaje["fecha_salida"]
+        hoy = datetime.date.today()
+
+        if isinstance(fecha_salida, datetime.datetime):
+            fecha_salida = fecha_salida.date()
+
+        dias_diferencia = (fecha_salida - hoy).days
+
+        if 0 <= dias_diferencia <= 3:
+            precio_unitario = precio_base * 0.5
+        else:
+            precio_unitario = precio_base
+
+        precio_final_total = precio_unitario * cantidad_cupos
+
+        cur.execute("""
+            UPDATE viajes 
+            SET cupos_disponibles = cupos_disponibles - %s 
+            WHERE id = %s;
+        """, (cantidad_cupos, viaje_id))
+
+        cur.execute("""
+            INSERT INTO reservas (usuario_id, viaje_id, fecha_reserva, precio_final, estado)
+            VALUES (%s, %s, CURRENT_TIMESTAMP, %s, 'CONFIRMADA'::estado_reserva)
+            RETURNING id;
+        """, (usuario_id, viaje_id, precio_final_total))
+
+        nueva_reserva = cur.fetchone()
+        reserva_id = nueva_reserva["id"]
+
+        id_agencia = viaje.get("agencia_id") or 2
+        prefijo = PREFIJOS_AGENCIA.get(int(id_agencia), "VL")
+
+        cur.execute("""
+            SELECT COALESCE(MAX(CAST(SUBSTRING(codigo FROM 3) AS INTEGER)), 0) AS max_num
+            FROM reservas
+            WHERE codigo LIKE %s;
+        """, (f"{prefijo}%",))
         
+        siguiente_num = cur.fetchone()["max_num"] + 1
+        codigo_reserva = f"{prefijo}{siguiente_num:03d}"
+
+        cur.execute("""
+            UPDATE reservas 
+            SET codigo = %s 
+            WHERE id = %s;
+        """, (codigo_reserva, reserva_id))
+
+        conn.commit()
+
+        return jsonify({
+            "mensaje": "Reserva realizada exitosamente",
+            "id_reserva": reserva_id,
+            "codigo": codigo_reserva,
+            "codigo_reserva": codigo_reserva,
+            "cupos_reservados": cantidad_cupos,
+            "precio_final": precio_final_total
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al procesar reserva: {e}")
+        return jsonify({"error": "Error interno al procesar la reserva en la base de datos."}), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
+# ==========================================
+# DETALLE DE RESERVA ESPECÍFICA (DESTINO-DETALLE)
+# ==========================================
+@app.route("/api/reservas/detalle/<string:identificador>", methods=["GET"])
+def obtener_detalle_reserva(identificador):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        reserva = None
+        
+        if identificador.isdigit():
+            reserva_id_num = int(identificador)
+            
+            cur.execute("""
+                SELECT 
+                    r.id, r.codigo, r.usuario_id, r.viaje_id, r.precio_final, r.estado,
+                    TO_CHAR(r.fecha_reserva, 'HH12:MI AM / Month DD, YYYY') AS fecha_reserva_formateada,
+                    u.nombre AS usuario_nombre, u.apellido AS usuario_apellido, u.email AS usuario_email,
+                    u.tipo_doc AS usuario_tipo_doc, u.numero_doc AS usuario_numero_doc, u.numero_telefono AS usuario_telefono
+                FROM reservas r
+                LEFT JOIN usuarios u ON r.usuario_id = u.id
+                WHERE r.id = %s;
+            """, (reserva_id_num,))
+            reserva = cur.fetchone()
+
+            if not reserva:
+                cur.execute("""
+                    SELECT 
+                        r.id, r.codigo, r.usuario_id, r.viaje_id, r.precio_final, r.estado,
+                        TO_CHAR(r.fecha_reserva, 'HH12:MI AM / Month DD, YYYY') AS fecha_reserva_formateada,
+                        u.nombre AS usuario_nombre, u.apellido AS usuario_apellido, u.email AS usuario_email,
+                        u.tipo_doc AS usuario_tipo_doc, u.numero_doc AS usuario_numero_doc, u.numero_telefono AS usuario_telefono
+                    FROM reservas r
+                    LEFT JOIN usuarios u ON r.usuario_id = u.id
+                    WHERE r.viaje_id = %s
+                    ORDER BY r.id DESC LIMIT 1;
+                """, (reserva_id_num,))
+                reserva = cur.fetchone()
+
+        else:
+            cur.execute("""
+                SELECT 
+                    r.id, r.codigo, r.usuario_id, r.viaje_id, r.precio_final, r.estado,
+                    TO_CHAR(r.fecha_reserva, 'HH12:MI AM / Month DD, YYYY') AS fecha_reserva_formateada,
+                    u.nombre AS usuario_nombre, u.apellido AS usuario_apellido, u.email AS usuario_email,
+                    u.tipo_doc AS usuario_tipo_doc, u.numero_doc AS usuario_numero_doc, u.numero_telefono AS usuario_telefono
+                FROM reservas r
+                LEFT JOIN usuarios u ON r.usuario_id = u.id
+                WHERE r.codigo = %s;
+            """, (identificador,))
+            reserva = cur.fetchone()
+
+        if not reserva:
+            return jsonify({"error": "La reserva no existe."}), 404
+
+        cur.execute("SELECT * FROM viajes WHERE id = %s;", (reserva["viaje_id"],))
+        viaje = cur.fetchone()
+
+        if viaje:
+            cur.execute("""
+                SELECT dia_numero, titulo, descripcion, TO_CHAR(hora_inicio, 'HH12:MI AM') AS hora_inicio 
+                FROM itinerarios WHERE viaje_id = %s ORDER BY dia_numero ASC;
+            """, (reserva["viaje_id"],))
+            viaje["itinerario_dias"] = cur.fetchall()
+
+            for campo in ["fecha_salida", "fecha_llegada"]:
+                if viaje.get(campo) and hasattr(viaje[campo], "isoformat"):
+                    viaje[campo] = viaje[campo].isoformat()
+
+        pasajeros = [{
+            "nombre": reserva.get("usuario_nombre") or "Pasajero",
+            "apellido": reserva.get("usuario_apellido") or "",
+            "tipo_documento": reserva.get("usuario_tipo_doc") or "CC",
+            "numero_documento": reserva.get("usuario_numero_doc") or "-",
+            "email": reserva.get("usuario_email") or "",
+            "telefono": reserva.get("usuario_telefono") or ""
+        }]
+
+        return jsonify({
+            "reserva": reserva,
+            "viaje": viaje,
+            "usuario": {
+                "nombre": reserva.get("usuario_nombre"),
+                "apellido": reserva.get("usuario_apellido"),
+                "email": reserva.get("usuario_email"),
+                "tipo_doc": reserva.get("usuario_tipo_doc"),
+                "numero_doc": reserva.get("usuario_numero_doc")
+            },
+            "pasajeros": pasajeros
+        }), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en obtener_detalle_reserva: {e}")
+        return jsonify({"error": "Error interno del servidor."}), 500
+
+    finally:
+        cur.close()
+        conn.close()
 
 
 if __name__ == "__main__":

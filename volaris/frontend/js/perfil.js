@@ -44,6 +44,20 @@ function formatearTelefono(telefonoRaw) {
 }
 
 // ------------------------------------------
+// HELPER PARA BADGES DE ESTADO
+// ------------------------------------------
+function obtenerBadgeEstado(estado) {
+    const estadoUpper = String(estado || '').toUpperCase();
+    const estados = {
+        'CONFIRMADA': '<span class="badge bg-success">Confirmada</span>',
+        'PENDIENTE': '<span class="badge bg-warning text-dark">Pendiente</span>',
+        'COMPLETADA': '<span class="badge bg-info text-dark">Completada</span>',
+        'CANCELADA': '<span class="badge bg-danger">Cancelada</span>'
+    };
+    return estados[estadoUpper] || `<span class="badge bg-secondary">${estado || 'N/A'}</span>`;
+}
+
+// ------------------------------------------
 // VISTA CLIENTE
 // ------------------------------------------
 async function configurarVistaCliente(usuario, token) {
@@ -164,7 +178,6 @@ function abrirModalEditarPerfil(usuario, token) {
                     <input type="text" id="swal-apellido" class="form-control" value="${usuario.apellido || ''}">
                 </div>
 
-                <!-- CÓDIGO DE PAÍS Y NÚMERO SEPARADOS -->
                 <div class="col-4 mb-2">
                     <label class="form-label fw-semibold small">Cód. País</label>
                     <select id="swal-indicativo" class="form-select">
@@ -266,25 +279,41 @@ function abrirModalEditarPerfil(usuario, token) {
 // ------------------------------------------
 // RENDERIZADORES
 // ------------------------------------------
+function formatearCOP(valor) {
+    const numero = Number(valor) || 0;
+    return new Intl.NumberFormat('es-CO', {
+        style: 'currency',
+        currency: 'COP',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+    }).format(numero);
+}
+
 function renderizarProximosViajes(viajes) {
     const cont = document.getElementById("contenedor-proximos-viajes");
     if (viajes.length === 0) {
         cont.innerHTML = `<p class="text-muted small">No hay reservas próximas disponibles.</p>`;
         return;
     }
-    cont.innerHTML = viajes.map(item => `
-        <div class="d-flex align-items-center justify-content-between p-2 bg-white rounded-3 shadow-sm border">
-            <div class="d-flex align-items-center gap-3">
-                <img src="${item.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80'}" class="rounded-3 object-fit-cover" style="width: 80px; height: 80px;">
-                <div>
-                    <h6 class="fw-bold mb-1 text-dark">${item.destino}</h6>
-                    <p class="small text-muted mb-1">${item.origen ? 'Desde ' + item.origen : 'Reserva'}</p>
-                    <span class="fw-bold text-dark small">${item.precio_final || '0'} COP</span>
+    cont.innerHTML = viajes.map(item => {
+        const idReserva = item.id_reserva || item.id;
+        return `
+            <div class="d-flex align-items-center justify-content-between p-2 bg-white rounded-3 shadow-sm border">
+                <div class="d-flex align-items-center gap-3">
+                    <img src="${item.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80'}" class="rounded-3 object-fit-cover" style="width: 80px; height: 80px;">
+                    <div>
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <h6 class="fw-bold mb-0 text-dark">${item.destino}</h6>
+                            ${obtenerBadgeEstado(item.estado_reserva)}
+                        </div>
+                        <p class="small text-muted mb-1">${item.origen ? 'Desde ' + item.origen : 'Reserva'}</p>
+                        <span class="fw-bold text-dark small">${formatearCOP(item.precio_final)}</span>
+                    </div>
                 </div>
+                <a href="destino-detalle.html?id=${idReserva}" class="btn btn-volaris btn-sm px-3 fw-semibold">Ver detalles</a>
             </div>
-            <a href="destino-detalle.html?id=${item.id_viaje}" class="btn btn-volaris btn-sm px-3 fw-semibold">Ver detalles</a>
-        </div>
-    `).join("");
+        `;
+    }).join("");
 }
 
 function renderizarHistorialViajes(viajes) {
@@ -297,7 +326,10 @@ function renderizarHistorialViajes(viajes) {
         <div class="d-flex align-items-center gap-3 p-2 bg-white rounded-3 shadow-sm border">
             <img src="${item.imagen_url || 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=300&q=80'}" class="rounded-3 object-fit-cover" style="width: 70px; height: 70px;">
             <div>
-                <h6 class="fw-bold mb-1 text-dark">${item.destino}</h6>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <h6 class="fw-bold mb-0 text-dark">${item.destino}</h6>
+                    ${obtenerBadgeEstado(item.estado_reserva)}
+                </div>
                 <p class="small text-muted mb-0">${item.fecha_reserva_formateada || 'Completado'}</p>
             </div>
         </div>

@@ -543,3 +543,29 @@ INSERT INTO itinerarios (viaje_id, dia_numero, titulo, descripcion, hora_inicio)
 (60, 6, 'Retorno', 'Mercado y vuelo final.', '09:30');
 SELECT setval('itinerarios_id_seq', (SELECT MAX(id) FROM itinerarios));
 
+-- ============================================================
+-- E. RESERVAS 
+-- ============================================================
+INSERT INTO reservas (codigo, usuario_id, viaje_id, fecha_reserva, precio_final, estado)
+SELECT 
+    CASE v.agencia_id
+        WHEN 1 THEN 'CT' || LPAD(i::text, 4, '0')
+        WHEN 2 THEN 'VL' || LPAD(i::text, 4, '0')
+        WHEN 3 THEN 'PS' || LPAD(i::text, 4, '0')
+        ELSE 'VC' || LPAD(i::text, 4, '0')
+    END AS codigo,
+    
+    (5 + ((i - 1) % 5)) AS usuario_id,
+    
+    (1 + ((i * 7) % 60)) AS viaje_id,
+    
+    CURRENT_TIMESTAMP - (i || ' days')::INTERVAL - ((i * 2) || ' hours')::INTERVAL AS fecha_reserva,
+    
+    v.precio_base AS precio_final,
+    
+    (ARRAY['CONFIRMADA', 'PENDIENTE', 'COMPLETADA', 'CANCELADA']::estado_reserva[])[((i - 1) % 4) + 1] AS estado
+
+FROM generate_series(1, 100) AS i
+JOIN viajes v ON v.id = (1 + ((i * 7) % 60));
+
+SELECT setval('reservas_id_seq', (SELECT MAX(id) FROM reservas));

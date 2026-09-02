@@ -34,7 +34,111 @@
             </div>
         </div>
     </header>
+    <main class="container my-5" id="seccion-reserva">
+        
+        <div id="alert-no-sesion" class="alert alert-warning border-0 shadow-sm rounded-4 p-3 mb-4 d-none">
+            <div class="d-flex align-items-center gap-3">
+                <i class="fa-solid fa-circle-info fs-3 text-warning"></i>
+                <div>
+                    <h6 class="fw-bold mb-1">¡Regístrate para consultar tus viajes!</h6>
+                    <p class="mb-0 small text-dark">Si inicias sesión antes de reservar, podrás hacerle seguimiento a tus itinerarios, reservas y boletos en tu perfil en cualquier momento. <a href="login.html" class="fw-bold text-dark text-decoration-underline">Iniciar sesión / Registrarse</a></p>
+                </div>
+            </div>
+        </div>
+        <div class="row g-4">
+            <div class="col-12 col-lg-7">
+                <div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+                    <div class="row g-0">
+                        <div class="col-12 col-md-5">
+                            <img id="reserva-imagen" src="assets/imagenes/default.jpg" class="img-fluid h-100 object-fit-cover w-100" style="min-height: 200px;" alt="Destino">
+                        </div>
+                        <div class="col-12 col-md-7 p-4">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span id="badge-descuento-promo" class="badge rounded-pill px-3 py-1 text-white d-none" style="background-color: #ff3838;">
+                                    <i class="fa-solid fa-bolt me-1"></i>¡ÚLTIMA HORA 50% DCTO!
+                                </span>
+                            </div>
+                            <h3 id="reserva-destino" class="fw-bold text-dark mb-1">Cargando destino...</h3>
+                            <p id="reserva-origen" class="text-muted small mb-2"><i class="fa-solid fa-plane-departure me-1" style="color: #ff3838;"></i>Origen: -</p>
+                            <p id="reserva-descripcion" class="text-muted small mb-0 text-truncate-2">Cargando descripción...</p>
+                        </div>
+                    </div>
+                </div>
+                <form id="form-reserva" novalidate>
+                    <div class="card border-0 shadow-sm rounded-4 p-4 mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-user-check me-2" style="color: #ff3838;"></i>Pasajero Principal</h5>
+                            <span class="badge bg-light text-dark border fw-normal">Titular</span>
+                        </div>
 
+                        <div class="row g-3">
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Nombre</label>
+                                <input type="text" class="form-control" id="nombre-0" required placeholder="Ej. Carlos">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Apellido</label>
+                                <input type="text" class="form-control" id="apellido-0" required placeholder="Ej. Pérez">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Tipo de Documento</label>
+                                <select class="form-select" id="tipo-doc-0" required>
+                                    <option value="CC">Cédula de Ciudadanía (CC)</option>
+                                    <option value="CE">Cédula de Extranjería (CE)</option>
+                                    <option value="PASAPORTE">Pasaporte</option>
+                                    <option value="TI">Tarjeta de Identidad (TI)</option>
+                                </select>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Número de Documento</label>
+                                <input type="text" class="form-control" id="num-doc-0" required placeholder="Ej. 1098765432">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Correo Electrónico</label>
+                                <input type="email" class="form-control" id="email-0" required placeholder="correo@ejemplo.com">
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <label class="form-label small fw-semibold">Teléfono Celular</label>
+                                <input type="tel" class="form-control" id="celular-0" required placeholder="300 000 0000">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="pasajeros-adicionales-container"></div>
+                    <button type="button" id="btn-agregar-pasajero" class="btn btn-outline-danger w-100 py-2 rounded-3 fw-bold border-dashed mb-4">
+                        <i class="fa-solid fa-user-plus me-2"></i>Agregar otro pasajero
+                    </button>
+                </form>
+            </div>
+            <div class="col-12 col-lg-5">
+                <div class="card border-0 shadow-lg rounded-4 p-4 sticky-top" style="top: 90px;">
+                    <h5 class="fw-bold text-dark mb-3">Resumen de la Reserva</h5>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Cupos seleccionados:</span>
+                        <span id="reserva-num-pasajeros" class="fw-bold text-dark fs-6">1 Pasajero</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="text-muted">Precio unitario base:</span>
+                        <span id="reserva-precio-base" class="fw-semibold text-dark">$0 COP</span>
+                    </div>
+                    <div id="fila-descuento" class="d-flex justify-content-between align-items-center mb-2 small d-none">
+                        <span class="fw-semibold" style="color: #ff3838;">Descuento Última Hora (50%):</span>
+                        <span id="reserva-monto-descuento" class="fw-bold" style="color: #ff3838;">-$0 COP</span>
+                    </div>
+                    <hr class="my-3 text-secondary opacity-25">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <span class="fw-bold text-dark fs-5">Total a pagar:</span>
+                        <h3 id="reserva-precio-total" class="fw-bold mb-0" style="color: #ff3838;">$0 COP</h3>
+                    </div>
+                    <button type="submit" form="form-reserva" id="btn-confirmar-reserva" class="btn text-white w-100 py-3 fw-bold rounded-3 fs-6 shadow-sm" style="background-color: #ff3838;">
+                        <i class="fa-solid fa-lock me-2"></i>Confirmar Reserva
+                    </button>
+                    <p class="text-muted text-center small mt-3 mb-0">
+                        <i class="fa-solid fa-shield-halved me-1 text-success"></i> Transacción segura y validación atómica de cupos.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
     <footer class="footer mt-auto py-4 bg-light text-center text-muted">
         <div class="container">
             <div class="social-links d-flex justify-content-center align-items-center gap-3 mb-3">

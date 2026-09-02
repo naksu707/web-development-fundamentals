@@ -83,7 +83,7 @@
 | **Agencias** | Información de empresas proveedoras de tours | `id`, `nombre_agencia`, `contacto`, `nit` |
 | **viajes** | Oferta de vuelos y paquetes | `id`, `agencia_id`, `origen`, `destino`, `tipo_salida`, `categoria`, `descripcion`, `fecha_salida`, `fecha_llegada`, `duracion_dias`, `cupos_totales`, `cupos_disponibles`, `precio_base`, `imagen_url` |
 | **itinerarios** | Cronograma y actividades asociadas a cada viaje | `id`, `viaje_id`, `dia_numero`, `titulo`, `descripcion`, `hora_inicio` |
-| **Reservas** | Transacciones de compra de cupos | `id`, `usuario_id`, `viaje_id`, `fecha_reserva`, `precio_final`, `estado` |
+| **Reservas** | Transacciones de compra de cupos | `id`, `codigo`, `usuario_id`, `viaje_id`, `fecha_reserva`, `precio_final`, `estado` |
 | **Comentarios** | Evaluaciones de viajes finalizados | `id`, `usuario_id`, `viaje_id`, `calificacion`, `mensaje`, `fecha` |
 | **PQR** | Módulo de atención a solicitudes | `id`, `codigo_radicado`, `usuario_id`, `reserva_id`, `tipo`, `descripcion`, `estado`, `respuesta` |
 | **EstadisticasMensuales** | Reportes consolidados para el Scroll storytelling | `id`, `anio`, `mes`, `destino_top_id`, `total_reservas`, `ingresos_totales`, `datos_json` |
