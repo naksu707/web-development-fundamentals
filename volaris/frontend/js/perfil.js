@@ -128,10 +128,10 @@ async function cargarSolicitudesPendientesAgencia(token) {
 
         cont.innerHTML = pqrs.map(p => {
             const respuestaEscapada = (p.respuesta || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-            const esEnRevision = p.estado && p.estado.toUpperCase().includes('REVIS');
-            const textoBoton = esEnRevision ? 'Editar Respuesta' : 'Responder PQR';
-            const badgeEstado = esEnRevision 
-                ? '<span class="badge bg-info text-dark ms-2">EN REVISIÓN</span>' 
+            const esEnProceso = p.estado === 'EN_PROCESO';
+            const textoBoton = esEnProceso ? 'Editar Respuesta' : 'Responder PQR';
+            const badgeEstado = esEnProceso 
+                ? '<span class="badge bg-info text-dark ms-2">EN PROCESO</span>' 
                 : '';
 
             return `
@@ -169,7 +169,7 @@ function abrirModalResponderPQR(pqrId, codigoRadicado, respuestaActual = '', est
                 
                 <label class="form-label fw-semibold small">Estado de la solicitud:</label>
                 <select id="swal-estado-pqr" class="form-select">
-                    <option value="EN REVISION" ${estadoActual.includes('REVIS') ? 'selected' : ''}>En revisión (Se valida con el área encargada)</option>
+                    <option value="EN_PROCESO" ${estadoActual.includes('PROCESO') || estadoActual.includes('REVIS') ? 'selected' : ''}>En revisión / En proceso</option>
                     <option value="RESUELTO" ${estadoActual === 'RESUELTO' ? 'selected' : ''}>Resuelto (Cierra la PQR)</option>
                 </select>
             </div>

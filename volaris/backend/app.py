@@ -1079,14 +1079,10 @@ def obtener_pqrs_pendientes_agencia():
     try:
         cur.execute("SELECT numero_doc FROM usuarios WHERE id = %s;", (usuario_id,))
         usr = cur.fetchone()
-        
-        if not usr or not usr.get("numero_doc"):
-            return jsonify([]), 200
-
-        nit_agencia = usr["numero_doc"].strip()
+        nit_agencia = usr["numero_doc"].strip() if usr and usr.get("numero_doc") else ""
 
         cur.execute("""
-            SELECT p.id, p.codigo_radicado, p.tipo, p.descripcion, p.estado,
+            SELECT p.id, p.codigo_radicado, p.tipo, p.descripcion, p.estado, p.respuesta,
                    COALESCE(u.nombre, 'Invitado') AS cliente_nombre, 
                    COALESCE(u.apellido, '') AS cliente_apellido,
                    v.destino, TO_CHAR(p.fecha_radicacion, 'YYYY-MM-DD') AS fecha
@@ -1096,7 +1092,7 @@ def obtener_pqrs_pendientes_agencia():
             JOIN agencias a ON v.agencia_id = a.id
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             WHERE a.nit = %s 
-              AND p.respuesta IS NULL
+              AND p.estado IN ('PENDIENTE', 'EN_PROCESO')
             ORDER BY p.id DESC;
         """, (nit_agencia,))
         
@@ -1110,7 +1106,6 @@ def obtener_pqrs_pendientes_agencia():
     finally:
         cur.close()
         conn.close()
-
 
 @app.route("/api/pqr/agencia/respondidas", methods=["GET"])
 def obtener_pqrs_respondidas_agencia():
@@ -1131,11 +1126,7 @@ def obtener_pqrs_respondidas_agencia():
     try:
         cur.execute("SELECT numero_doc FROM usuarios WHERE id = %s;", (usuario_id,))
         usr = cur.fetchone()
-        
-        if not usr or not usr.get("numero_doc"):
-            return jsonify([]), 200
-
-        nit_agencia = usr["numero_doc"].strip()
+        nit_agencia = usr["numero_doc"].strip() if usr and usr.get("numero_doc") else ""
 
         cur.execute("""
             SELECT p.id, p.codigo_radicado, p.tipo, p.descripcion, p.estado, p.respuesta,
@@ -1148,7 +1139,7 @@ def obtener_pqrs_respondidas_agencia():
             JOIN agencias a ON v.agencia_id = a.id
             LEFT JOIN usuarios u ON p.usuario_id = u.id
             WHERE a.nit = %s 
-              AND p.respuesta IS NOT NULL
+              AND p.estado = 'RESUELTO'
             ORDER BY p.id DESC;
         """, (nit_agencia,))
         
@@ -1177,10 +1168,10 @@ def responder_pqr(pqr_id):
     if not respuesta_texto:
         return jsonify({"error": "La respuesta no puede estar vacía"}), 400
 
-    if nuevo_estado not in ["EN REVISIÓN", "EN REVISION", "RESUELTO"]:
-        nuevo_estado = "RESUELTO"
-
-    estado_db = "EN REVISION" if "REVISI" in nuevo_estado else "RESUELTO"
+    if "REVISI" in nuevo_estado or "PROCESO" in nuevo_estado:
+        estado_db = "EN_PROCESO"
+    else:
+        estado_db = "RESUELTO"
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1198,12 +1189,15 @@ def responder_pqr(pqr_id):
             return jsonify({"error": "No se encontró la PQR a responder"}), 404
 
         conn.commit()
-        return jsonify({"mensaje": "PQR actualizada con éxito"}), 200
+        return jsonify({
+            "mensaje": "PQR actualizada con éxito",
+            "pqr": pqr_actualizada
+        }), 200
 
     except Exception as e:
         conn.rollback()
         print(f"Error al responder PQR: {e}")
-        return jsonify({"error": "Error al guardar la respuesta"}), 500
+        return jsonify({"error": f"Error interno en la base de datos: {str(e)}"}), 500
     finally:
         cur.close()
         conn.close()
