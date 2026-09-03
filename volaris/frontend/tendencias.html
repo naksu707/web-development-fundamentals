@@ -9,6 +9,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/tendencias.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -18,7 +20,6 @@
                 <img src="/volaris/frontend/assets/iconos/icon.png" alt="Logo Volaris" width="35" height="35" class="d-inline-block align-text-top">
                 <span class="fw-bold fs-4 text-dark">Volaris</span>
             </a>
-            
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarVolaris" aria-controls="navbarVolaris" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
@@ -26,7 +27,7 @@
                 <nav class="nav-links ms-auto d-flex flex-column flex-lg-row align-items-center align-items-lg-center justify-content-center justify-content-lg-end text-center text-lg-start gap-3 gap-lg-4 pb-3 pb-lg-0">
                     <a href="/volaris/frontend/viajes.html" class="nav-link-custom text-nowrap">Explorar Viajes</a>
                     <a href="/volaris/frontend/pqr.html" class="nav-link-custom text-nowrap">Soporte y Reseñas</a>
-                    <a href="/volaris/frontend/tendencias.html" class="nav-link-custom text-nowrap">Tendencias</a>
+                    <a href="/volaris/frontend/tendencias.html" class="nav-link-custom active text-nowrap">Tendencias</a>
                     <div id="user-session-container" class="ms-lg-2">
                         <a href="login.html" class="btn btn-volaris px-4 fw-semibold text-nowrap" id="btn-login">Iniciar sesión</a>
                     </div>
@@ -34,7 +35,103 @@
             </div>
         </div>
     </header>
+    <main class="container my-5 flex-grow-1">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-dark" id="titulo-panel">Descubre tu Próximo Destino Soñado</h2>
+            <p class="text-muted" id="subtitulo-panel">Explora los lugares mejor valorados por nuestra comunidad para planear unas vacaciones inolvidables.</p>
+        </div>
+        <div id="vista-cliente" class="d-none">
+            <div class="row g-4 mb-5 story-section">
+                <div class="col-md-6">
+                    <div class="p-4 bg-white rounded-3 shadow-sm border border-danger border-2 text-center">
+                        <span class="badge bg-danger mb-2">LO MEJOR EN COLOMBIA</span>
+                        <h3 class="fw-bold text-dark mb-1" id="kpi-top-nacional">Cartagena</h3>
+                        <p class="text-muted small mb-3">Tu mejor opción para desconectarte en playas doradas e historia colonial.</p>
+                        <a href="viajes.html" class="btn btn-outline-danger btn-sm rounded-pill px-4">Explorar Paquetes Nacionales</a>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="p-4 bg-white rounded-3 shadow-sm border border-primary border-2 text-center">
+                        <span class="badge bg-primary mb-2">EL FAVORITO INTERNACIONAL</span>
+                        <h3 class="fw-bold text-dark mb-1" id="kpi-top-internacional">Seúl</h3>
+                        <p class="text-muted small mb-3">La experiencia más recomendada para los amantes de la cultura y la gastronomía.</p>
+                        <a href="viajes.html" class="btn btn-outline-primary btn-sm rounded-pill px-4">Explorar Destinos Internacionales</a>
+                    </div>
+                </div>
+            </div>
+            <section class="story-section row align-items-center my-5 p-4 bg-white rounded-3 shadow-sm">
+                <div class="col-lg-5">
+                    <span class="badge bg-danger mb-2 font-monospace">Turismo Nacional</span>
+                    <h3 class="fw-bold">Paraísos en Colombia con Mejor Satisfacción</h3>
+                    <p class="text-muted">Basado en valoraciones reales de viajeros. Disfruta de la calidez, paisajes deslumbrantes y la mejor atención garantizada.</p>
+                </div>
+                <div class="col-lg-7">
+                    <div class="chart-container">
+                        <canvas id="chartTopNacionales"></canvas>
+                    </div>
+                </div>
+            </section>
+            <section class="story-section row align-items-center my-5 p-4 bg-white rounded-3 shadow-sm">
+                <div class="col-lg-7 order-2 order-lg-1">
+                    <div class="chart-container">
+                        <canvas id="chartTopInternacionales"></canvas>
+                    </div>
+                </div>
+                <div class="col-lg-5 order-1 order-lg-2">
+                    <span class="badge bg-primary mb-2 font-monospace">Mundo y Aventuras</span>
+                    <h3 class="fw-bold">Experiencias Internacionales Inolvidables</h3>
+                    <p class="text-muted">Si buscas salir del país, estos son los destinos fuera de Colombia que mejor han calificado nuestros usuarios este año.</p>
+                </div>
+            </section>
+            <section class="story-section row align-items-center my-5 p-4 bg-white rounded-3 shadow-sm">
+                <div class="col-lg-5">
+                    <span class="badge bg-success mb-2 font-monospace">Estilos de Viaje</span>
+                    <h3 class="fw-bold">¿Qué Tipo de Vacaciones Prefieres?</h3>
+                    <p class="text-muted">Descubre cuál es la tendencia entre Playa, Montaña, Ciudad y Aventura para inspirar tu itinerario.</p>
+                </div>
+                <div class="col-lg-7">
+                    <div class="chart-container">
+                        <canvas id="chartExperiencias"></canvas>
+                    </div>
+                </div>
+            </section>
 
+        </div>
+        <div id="vista-agencia" class="d-none">
+            <div class="row g-3 mb-4 story-section">
+                <div class="col-md-4">
+                    <div class="p-3 bg-danger text-white rounded-3 shadow-sm">
+                        <span class="small opacity-75">Total Reservas</span>
+                        <h3 class="fw-bold mb-0" id="metric-total-reservas">0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white border rounded-3 shadow-sm">
+                        <span class="small text-muted">Ingresos Proyectados</span>
+                        <h3 class="fw-bold text-dark mb-0" id="metric-ingresos">$0</h3>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="p-3 bg-white border rounded-3 shadow-sm">
+                        <span class="small text-muted">Gestión de PQRs</span>
+                        <h3 class="fw-bold text-success mb-0" id="metric-pqrs-resueltas">0/0</h3>
+                    </div>
+                </div>
+            </div>
+            <section class="story-section bg-white p-4 rounded-3 shadow-sm mb-4">
+                <h4 class="fw-bold mb-3">Evolución Histórica de Ingresos ($)</h4>
+                <div class="chart-container">
+                    <canvas id="chartAgenciaIngresos"></canvas>
+                </div>
+            </section>
+            <section class="story-section bg-white p-4 rounded-3 shadow-sm">
+                <h4 class="fw-bold mb-3">Solicitudes y PQRs Recientes</h4>
+                <div id="contenedor-casos-recientes">
+                    <p class="text-muted small">Cargando actividad...</p>
+                </div>
+            </section>
+        </div>
+    </main>
     <footer class="footer mt-auto py-4 bg-light text-center text-muted">
         <div class="container">
             <div class="social-links d-flex justify-content-center align-items-center gap-3 mb-3">
@@ -49,8 +146,9 @@
             </div>
         </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/script.js"></script>
+    <script src="js/tendencias.js"></script>
 </body>
 </html>

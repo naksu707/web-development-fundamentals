@@ -10,6 +10,8 @@ from db import get_db_connection
 from werkzeug.utils import secure_filename
 import random
 import string
+from apscheduler.schedulers.background import BackgroundScheduler
+import json
 
 app = Flask(__name__)
 CORS(app, origins=["http://127.0.0.1:5500", "http://localhost:5500"])
@@ -27,7 +29,6 @@ PREFIJOS_AGENCIA = {
     3: "PS",  # Agencia 3
     4: "VC"   # Agencia 4
 }
-
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -1240,6 +1241,260 @@ def obtener_pqrs_cliente():
         cur.close()
         conn.close()
 
+# ==========================================
+# HU-12: CONSOLIDACIÓN MENSUAL DE DATOS (CRON JOB)
+# ==========================================
+def consolidar_estadisticas_mensuales():
+    print("Ejecutando Cron Job: Consolidación de Estadísticas Mensuales...")
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        hoy = datetime.date.today()
+        primer_dia_mes_actual = hoy.replace(day=1)
+        ultimo_dia_mes_anterior = primer_dia_mes_actual - datetime.timedelta(days=1)
+        primer_dia_mes_anterior = ultimo_dia_mes_anterior.replace(day=1)
+
+        anio_evaluar = primer_dia_mes_anterior.year
+        mes_evaluar = primer_dia_mes_anterior.month
+
+        cur.execute("""
+            SELECT COUNT(*) AS total_res, COALESCE(SUM(precio_final), 0) AS ingresos
+            FROM reservas
+            WHERE fecha_reserva >= %s AND fecha_reserva <= %s;
+        """, (primer_dia_mes_anterior, ultimo_dia_mes_anterior))
+        res_data = cur.fetchone()
+
+        cur.execute("""
+            SELECT v.id AS viaje_id, COUNT(r.id) as total
+            FROM reservas r
+            JOIN viajes v ON r.viaje_id = v.id
+            WHERE r.fecha_reserva >= %s AND r.fecha_reserva <= %s
+            GROUP BY v.id ORDER BY total DESC LIMIT 1;
+        """, (primer_dia_mes_anterior, ultimo_dia_mes_anterior))
+        top_dest = cur.fetchone()
+        destino_top_id = top_dest['viaje_id'] if top_dest else None
+
+        cur.execute("""
+            SELECT 
+                COUNT(*) AS total_pqr,
+                COUNT(CASE WHEN estado = 'RESUELTO' THEN 1 END) AS resueltas
+            FROM pqr
+            WHERE fecha_radicacion >= %s AND fecha_radicacion <= %s;
+        """, (primer_dia_mes_anterior, ultimo_dia_mes_anterior))
+        pqr_data = cur.fetchone()
+
+        datos_json = json.dumps({
+            "total_pqrs": pqr_data['total_pqr'],
+            "pqrs_resueltas": pqr_data['resueltas']
+        })
+
+        cur.execute("""
+            INSERT INTO estadisticas_mensuales (anio, mes, destino_top_id, total_reservas, ingresos_totales, datos_json)
+            VALUES (%s, %s, %s, %s, %s, %s);
+        """, (
+            anio_evaluar, 
+            mes_evaluar, 
+            destino_top_id, 
+            res_data['total_res'], 
+            res_data['ingresos'], 
+            datos_json
+        ))
+
+        conn.commit()
+        print(f"Consolidación guardada para {mes_evaluar}/{anio_evaluar}")
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en consolidación mensual: {e}")
+    finally:
+        cur.close()
+        conn.close()
+
+scheduler = BackgroundScheduler()
+scheduler.add_job(consolidar_estadisticas_mensuales, 'cron', day=1, hour=0, minute=0)
+scheduler.start()
+
+
+# ==========================================
+# HU-11: ENDPOINTS DE ANALÍTICA (CLIENTE Y AGENCIA)
+# ==========================================
+@app.route("/api/analitica/cliente", methods=["GET"])
+def analitica_cliente():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT 
+                v.destino,
+                SUM(em.total_reservas) AS reservas_acumuladas,
+                ROUND(AVG(COALESCE((em.datos_json->>'satisfaccion_promedio')::numeric, 4.8)), 1) AS satisfaccion
+            FROM estadisticas_mensuales em
+            JOIN viajes v ON em.destino_top_id = v.id
+            WHERE v.tipo_salida = 'NACIONAL'
+            GROUP BY v.destino
+            ORDER BY reservas_acumuladas DESC LIMIT 5;
+        """)
+        top_nacionales = cur.fetchall()
+
+        cur.execute("""
+            SELECT 
+                v.destino,
+                SUM(em.total_reservas) AS reservas_acumuladas,
+                ROUND(AVG(COALESCE((em.datos_json->>'satisfaccion_promedio')::numeric, 4.9)), 1) AS satisfaccion
+            FROM estadisticas_mensuales em
+            JOIN viajes v ON em.destino_top_id = v.id
+            WHERE v.tipo_salida = 'INTERNACIONAL'
+            GROUP BY v.destino
+            ORDER BY reservas_acumuladas DESC LIMIT 5;
+        """)
+        top_internacionales = cur.fetchall()
+
+        cur.execute("""
+            SELECT 
+                COALESCE(v.categoria, 'Playa / Sol') AS categoria,
+                SUM(em.total_reservas) AS total_reservas
+            FROM estadisticas_mensuales em
+            JOIN viajes v ON em.destino_top_id = v.id
+            WHERE v.categoria IS NOT NULL
+            GROUP BY v.categoria
+            ORDER BY total_reservas DESC LIMIT 5;
+        """)
+        experiencias_top = cur.fetchall()
+
+        rec_nac = top_nacionales[0]["destino"] if top_nacionales else "Desierto de la Tatacoa"
+        rec_inter = top_internacionales[0]["destino"] if top_internacionales else "Ámsterdam"
+
+        return jsonify({
+            "top_nacionales": top_nacionales,
+            "top_internacionales": top_internacionales,
+            "experiencias_top": experiencias_top,
+            "recomendado_nacional": rec_nac,
+            "recomendado_internacional": rec_inter
+        }), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en analitica_cliente: {e}")
+        return jsonify({"error": "Error al consultar la tabla estadisticas_mensuales"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/api/analitica/agencia", methods=["GET"])
+def analitica_agencia():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "No autorizado"}), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify({"error": "Token inválido"}), 401
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("SELECT numero_doc FROM usuarios WHERE id = %s;", (usuario_id,))
+        usr = cur.fetchone()
+        nit_agencia = usr["numero_doc"].strip() if usr and usr.get("numero_doc") else ""
+
+        cur.execute("""
+            SELECT 
+                COUNT(DISTINCT r.id) AS total_reservas,
+                COALESCE(SUM(r.precio_final), 0) AS ingresos_totales,
+                COUNT(DISTINCT p.id) AS total_pqrs,
+                COUNT(DISTINCT CASE WHEN p.estado = 'RESUELTO' THEN p.id END) AS pqrs_resueltas
+            FROM viajes v
+            JOIN agencias a ON v.agencia_id = a.id
+            LEFT JOIN reservas r ON r.viaje_id = v.id
+            LEFT JOIN pqr p ON p.reserva_id = r.id
+            WHERE a.nit = %s;
+        """, (nit_agencia,))
+        resumen = cur.fetchone()
+
+        cur.execute("""
+            SELECT 
+                em.anio::text AS anio_label,
+                SUM(em.total_reservas) AS reservas_anuales,
+                ROUND(SUM(em.ingresos_totales), 0) AS ingresos_anuales
+            FROM estadisticas_mensuales em
+            GROUP BY em.anio ORDER BY em.anio ASC;
+        """)
+        historico_ingresos = cur.fetchall()
+
+        cur.execute("""
+            SELECT TO_CHAR(r.fecha_reserva, 'Dy') AS dia, COUNT(r.id) AS total
+            FROM reservas r
+            JOIN viajes v ON r.viaje_id = v.id
+            JOIN agencias a ON v.agencia_id = a.id
+            WHERE a.nit = %s
+            GROUP BY TO_CHAR(r.fecha_reserva, 'Dy'), EXTRACT(DOW FROM r.fecha_reserva)
+            ORDER BY EXTRACT(DOW FROM r.fecha_reserva);
+        """, (nit_agencia,))
+        reservas_semanales = cur.fetchall()
+
+        cur.execute("""
+            SELECT p.codigo_radicado, p.tipo, p.descripcion, p.estado,
+                   COALESCE(u.nombre, 'Cliente') AS cliente_nombre
+            FROM pqr p
+            JOIN reservas r ON p.reserva_id = r.id
+            JOIN viajes v ON r.viaje_id = v.id
+            JOIN agencias a ON v.agencia_id = a.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE a.nit = %s ORDER BY p.id DESC LIMIT 5;
+        """, (nit_agencia,))
+        casos_recientes = cur.fetchall()
+
+        return jsonify({
+            "resumen": resumen,
+            "historico_ingresos": historico_ingresos,
+            "reservas_semanales": reservas_semanales,
+            "casos_recientes": casos_recientes
+        }), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en analitica_agencia: {e}")
+        return jsonify({"error": "Error interno"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route("/api/analitica/historico-mensual", methods=["GET"])
+def analitica_historico_mensual():
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT 
+                em.anio, 
+                em.mes, 
+                em.total_reservas, 
+                em.ingresos_totales,
+                COALESCE(v.destino, 'N/A') AS destino_top,
+                em.datos_json
+            FROM estadisticas_mensuales em
+            LEFT JOIN viajes v ON em.destino_top_id = v.id
+            ORDER BY em.anio ASC, em.mes ASC;
+        """)
+        historico = cur.fetchall()
+
+        return jsonify(historico), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en analitica_historico_mensual: {e}")
+        return jsonify({"error": "Error interno al consultar histórico"}), 500
+    finally:
+        cur.close()
+        conn.close()
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)

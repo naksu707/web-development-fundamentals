@@ -630,3 +630,43 @@ FROM (
 ) r;
 
 SELECT setval('pqr_id_seq', (SELECT MAX(id) FROM pqr));
+
+-- ============================================================
+-- H. Tendencias 
+-- ============================================================
+DO $$
+DECLARE
+    i INT;
+    v_fecha DATE;
+    v_anio INT;
+    v_mes INT;
+    v_destino_top INT;
+    v_total_res INT;
+    v_ingresos NUMERIC(12,2);
+    v_pqrs INT;
+    v_pqrs_res INT;
+    v_json JSONB;
+BEGIN
+    FOR i IN 1..4500 LOOP
+        v_fecha := '2024-01-01'::DATE + FLOOR(RANDOM() * ('2026-09-30'::DATE - '2024-01-01'::DATE))::INT;
+        v_anio  := EXTRACT(YEAR FROM v_fecha);
+        v_mes   := EXTRACT(MONTH FROM v_fecha);
+
+        v_destino_top := ((i * 7) % 60) + 1;
+        v_total_res   := 50 + ((i * 13) % 250);
+        v_ingresos    := (v_total_res * (800000 + ((i * 150000) % 3000000)))::NUMERIC(12,2);
+        v_pqrs        := 5 + (i % 20);
+        v_pqrs_res    := v_pqrs - (i % 3);
+        
+        v_json := jsonb_build_object(
+            'total_pqrs', v_pqrs,
+            'pqrs_resueltas', v_pqrs_res,
+            'categoria_top', (ARRAY['PLAYA', 'CIUDAD', 'MONTANA'])[((i % 3) + 1)],
+            'satisfaccion_promedio', ROUND((3.0 + (RANDOM() * 2.0))::NUMERIC, 1)
+        );
+
+        INSERT INTO estadisticas_mensuales (anio, mes, destino_top_id, total_reservas, ingresos_totales, datos_json)
+        VALUES (v_anio, v_mes, v_destino_top, v_total_res, v_ingresos, v_json);
+
+    END LOOP;
+END $$;
