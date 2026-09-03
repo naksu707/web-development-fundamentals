@@ -15,27 +15,29 @@ The main goal is to solidify frontend core concepts—such as semantic layout, R
 
 ---
 
-## Technologies & Tools
+### Technologies & Tools
 
-- **HTML5:** Semantic structure, accessibility, and content layout.
-- **CSS3:** Advanced styling, Flexbox, CSS Grid, animations, and Responsive Web Design.
-- **JavaScript (ES6+):** Frontend logic, dynamic filtering, DOM manipulation, and handling JSON data.
+* **Frontend:** HTML5, CSS3 (Flexbox/Grid), JavaScript (ES6+).
+* **Backend:** Python (Flask), RESTful APIs.
+* **Databases:** PostgreSQL / SQL (Schema design, DDL/DML scripts).
+* **Documentation & UI/UX Design:** Markdown (User Stories), Mockups / Wireframing.
 
 ---
 
 ## Topics & Skills Covered
 
-- Semantic markup and clean HTML5 structuring.
-- Responsive design using media queries (Mobile First and Desktop First approaches).
-- Web typography and integration with Google Fonts & icons.
-- Reusable UI components: Navigation bars, Hero sections, Product grids, and Modals.
-- Real-time product filtering and client-side interactivity using JavaScript.
-- Basic state management for e-commerce (Shopping cart and page persistence).
+* Semantic markup and clean HTML5 structuring.
+* Responsive Web Design (RWD) using media queries for Mobile First and Desktop layouts.
+* Dynamic DOM manipulation, real-time product filtering, and JSON data integration.
+* Full-stack web development: Integrating Flask REST API routes with SQL database operations.
+* Relational database modeling, script writing (table creation, insertions), and data persistence.
+* Handling user file uploads and backend asset management.
+* Agile documentation practices (User Stories) and UI mockup prototyping.
+* Reusable UI component architecture: Navigation bars, Hero sections, product grids, modals, and multi-role user profiles (Client/Agency).
 
 ---
 
-
-## 🚀 How to Run the Projects
+## How to Run the Projects
 
 To ensure all features work properly (especially dynamic JSON loading, dynamic routing, and interactive assets), it is recommended to run the projects using a local web server:
 
@@ -94,7 +96,14 @@ A complete interactive web application for a traditional stuffed arepas restaura
 ---
 
 ### 4. Volaris 
-IN PROCESS
+
+A full-stack web platform designed for travel and trip management. It allows users to explore destinations, submit reviews, manage customer or agency profiles, and send PQRs (Inquiries, Complaints, and Claims), backed by a robust database architecture and mockups designed for an optimal user experience.
+
+* **Technologies:** Python (Flask), PostgreSQL / SQL, HTML5, CSS3, JavaScript (ES6+), Markdown.
+* **Focus:**
+* **Full-Stack Architecture:** RESTful API endpoints, backend route management, and file upload handling for user assets and attachments.
+* **Relational Database Design:** Complete data persistence schema with SQL scripts for structure and seed data.
+* **User Experience & Documentation:** Comprehensive User Stories (HU) documentation paired with detailed UI/UX mockups for landing pages, authentication, trends, and dual profile roles (Client and Agency).
 
 > **Note for Running the Project:**
 > To properly run this project, update your VS Code settings. Access the settings by pressing `Ctrl + Shift + P`, search for **Open User Settings (JSON)**, and add or update the following configuration:
@@ -106,10 +115,6 @@ IN PROCESS
 >     "**/uploads/**"
 > ]
 > ```
-
-<p align="center">
-    <img src="/img/update-golive-settings.png" width="750" alt="Volaris Preview">
-</p>
 
 <p align="center">
     <img src="/img/preview-volaris.png" width="750" alt="Volaris Preview">

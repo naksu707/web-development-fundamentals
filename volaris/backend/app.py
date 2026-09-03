@@ -557,20 +557,15 @@ def obtener_detalle_viaje(viaje_id):
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
-        try:
-            cur.execute("""
-                SELECT 
-                    v.*,
-                    COALESCE(a.nombre, 'Volaris Partner') AS nombre_agencia
-                FROM viajes v
-                LEFT JOIN agencias a ON v.agencia_id = a.id
-                WHERE v.id = %s;
-            """, (viaje_id,))
-            viaje = cur.fetchone()
-        except Exception:
-            conn.rollback()
-            cur.execute("SELECT *, 'Volaris Partner' AS nombre_agencia FROM viajes WHERE id = %s;", (viaje_id,))
-            viaje = cur.fetchone()
+        cur.execute("""
+            SELECT 
+                v.*,
+                COALESCE(a.nombre_agencia, 'Volaris Partner') AS nombre_agencia
+            FROM viajes v
+            LEFT JOIN agencias a ON v.agencia_id = a.id
+            WHERE v.id = %s;
+        """, (viaje_id,))
+        viaje = cur.fetchone()
 
         if not viaje:
             return jsonify({"error": "El viaje solicitado no se encuentra disponible."}), 404
@@ -586,6 +581,21 @@ def obtener_detalle_viaje(viaje_id):
             ORDER BY dia_numero ASC, hora_inicio ASC;
         """, (viaje_id,))
         viaje["itinerario_dias"] = cur.fetchall()
+
+        cur.execute("""
+            SELECT 
+                c.id,
+                c.calificacion,
+                c.mensaje,
+                TO_CHAR(c.fecha, 'DD/MM/YYYY') AS fecha_formateada,
+                COALESCE(u.nombre, 'Viajero Volaris') AS usuario_nombre,
+                u.imagen_url AS usuario_foto
+            FROM comentarios c
+            LEFT JOIN usuarios u ON c.usuario_id = u.id
+            WHERE c.viaje_id = %s
+            ORDER BY c.fecha DESC;
+        """, (viaje_id,))
+        viaje["comentarios"] = cur.fetchall()
 
         for campo_fecha in ["fecha_salida", "fecha_llegada"]:
             if viaje.get(campo_fecha) and hasattr(viaje[campo_fecha], "isoformat"):
