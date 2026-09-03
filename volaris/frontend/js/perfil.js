@@ -126,19 +126,32 @@ async function cargarSolicitudesPendientesAgencia(token) {
             return;
         }
 
-        cont.innerHTML = pqrs.map(p => `
-            <div class="p-3 bg-white rounded-3 shadow-sm border mb-2">
-                <div class="d-flex justify-content-between align-items-center mb-1">
-                    <span class="fw-bold text-danger">${p.codigo_radicado}</span>
-                    <span class="badge bg-warning text-dark">${p.tipo}</span>
+        cont.innerHTML = pqrs.map(p => {
+            const respuestaEscapada = (p.respuesta || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+            const esEnRevision = p.estado && p.estado.toUpperCase().includes('REVIS');
+            const textoBoton = esEnRevision ? 'Editar Respuesta' : 'Responder PQR';
+            const badgeEstado = esEnRevision 
+                ? '<span class="badge bg-info text-dark ms-2">EN REVISIÓN</span>' 
+                : '';
+
+            return `
+                <div class="p-3 bg-white rounded-3 shadow-sm border mb-2">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <div>
+                            <span class="fw-bold text-danger">${p.codigo_radicado}</span>
+                            ${badgeEstado}
+                        </div>
+                        <span class="badge bg-warning text-dark">${p.tipo}</span>
+                    </div>
+                    <p class="small text-dark mb-1"><strong>Cliente:</strong> ${p.cliente_nombre || 'Invitado'} ${p.cliente_apellido || ''}</p>
+                    <p class="small text-muted mb-2"><strong>Detalle:</strong> ${p.descripcion}</p>
+                    <button class="btn btn-volaris btn-sm fw-semibold px-3" 
+                            onclick="abrirModalResponderPQR(${p.id}, '${p.codigo_radicado}', '${respuestaEscapada}', '${p.estado}', '${token}')">
+                        ${textoBoton}
+                    </button>
                 </div>
-                <p class="small text-dark mb-1"><strong>Cliente:</strong> ${p.cliente_nombre || 'Invitado'} ${p.cliente_apellido || ''}</p>
-                <p class="small text-muted mb-2"><strong>Detalle:</strong> ${p.descripcion}</p>
-                <button class="btn btn-volaris btn-sm fw-semibold px-3" onclick="abrirModalResponderPQR(${p.id}, '${p.codigo_radicado}', '${token}')">
-                    Responder PQR
-                </button>
-            </div>
-        `).join('');
+            `;
+        }).join('');
 
     } catch (e) {
         console.error("Error cargando solicitudes pendientes:", e);
@@ -146,20 +159,35 @@ async function cargarSolicitudesPendientesAgencia(token) {
     }
 }
 
-function abrirModalResponderPQR(pqrId, codigoRadicado, token) {
+function abrirModalResponderPQR(pqrId, codigoRadicado, respuestaActual = '', estadoActual = 'PENDIENTE', token) {
     Swal.fire({
-        title: `Responder PQR ${codigoRadicado}`,
-        input: 'textarea',
-        inputLabel: 'Escribe la respuesta oficial para el cliente:',
-        inputPlaceholder: 'Ingresa los detalles de la solución o respuesta...',
+        title: `Gestionar PQR ${codigoRadicado}`,
+        html: `
+            <div class="text-start">
+                <label class="form-label fw-semibold small">Escribe la respuesta oficial para el cliente:</label>
+                <textarea id="swal-respuesta-pqr" class="form-control mb-3" rows="4" placeholder="Ingresa los detalles de la solución o respuesta...">${respuestaActual}</textarea>
+                
+                <label class="form-label fw-semibold small">Estado de la solicitud:</label>
+                <select id="swal-estado-pqr" class="form-select">
+                    <option value="EN REVISION" ${estadoActual.includes('REVIS') ? 'selected' : ''}>En revisión (Se valida con el área encargada)</option>
+                    <option value="RESUELTO" ${estadoActual === 'RESUELTO' ? 'selected' : ''}>Resuelto (Cierra la PQR)</option>
+                </select>
+            </div>
+        `,
         showCancelButton: true,
-        confirmButtonText: 'Enviar Respuesta',
+        confirmButtonText: 'Guardar Respuesta',
         cancelButtonText: 'Cancelar',
         confirmButtonColor: '#ff3838',
-        inputValidator: (value) => {
-            if (!value || !value.trim()) {
-                return 'La respuesta no puede estar vacía.';
+        preConfirm: () => {
+            const respuesta = document.getElementById('swal-respuesta-pqr').value.trim();
+            const estado = document.getElementById('swal-estado-pqr').value;
+
+            if (!respuesta) {
+                Swal.showValidationMessage('La respuesta no puede estar vacía.');
+                return false;
             }
+
+            return { respuesta, estado };
         }
     }).then(async (result) => {
         if (result.isConfirmed) {
@@ -170,14 +198,14 @@ function abrirModalResponderPQR(pqrId, codigoRadicado, token) {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ respuesta: result.value.trim() })
+                    body: JSON.stringify(result.value)
                 });
 
                 if (res.ok) {
-                    Swal.fire('Respuesta enviada', 'La PQR ha sido marcada como resuelta.', 'success')
+                    Swal.fire('¡Actualizado!', 'La respuesta y el estado se han guardado exitosamente.', 'success')
                         .then(() => location.reload());
                 } else {
-                    Swal.fire('Error', 'No se pudo enviar la respuesta.', 'error');
+                    Swal.fire('Error', 'No se pudo guardar la respuesta.', 'error');
                 }
             } catch (err) {
                 console.error("Error al responder PQR:", err);

@@ -569,3 +569,64 @@ FROM generate_series(1, 100) AS i
 JOIN viajes v ON v.id = (1 + ((i * 7) % 60));
 
 SELECT setval('reservas_id_seq', (SELECT MAX(id) FROM reservas));
+
+-- ============================================================
+-- F. COMENTARIOS 
+-- ============================================================
+INSERT INTO comentarios (usuario_id, viaje_id, calificacion, mensaje, fecha)
+SELECT 
+    r.usuario_id,
+    r.viaje_id,
+    (4 + (i % 2)) AS calificacion, 
+    (ARRAY[
+        '¡Una experiencia increíble! El itinerario se cumplió a la perfección.',
+        'Excelente atención por parte de la agencia y los guías locales.',
+        'El viaje superó mis expectativas, los paisajes eran hermosos.',
+        'Muy buen servicio, todo estuvo bien organizado de principio a fin.',
+        'Un viaje inolvidable. Definitivamente volvería a reservar.',
+        'La logística fue impecable y los hoteles muy cómodos.',
+        'Totalmente recomendado para viajar en familia o con amigos.'
+    ])[((i - 1) % 7) + 1] AS mensaje,
+    r.fecha_reserva + INTERVAL '10 days' AS fecha
+FROM (
+    
+    SELECT DISTINCT ON (usuario_id, viaje_id) usuario_id, viaje_id, fecha_reserva
+    FROM reservas
+    ORDER BY usuario_id, viaje_id, fecha_reserva DESC
+    LIMIT 20
+) r
+CROSS JOIN LATERAL (SELECT row_number() OVER () AS i FROM reservas LIMIT 1) sub;
+
+SELECT setval('comentarios_id_seq', (SELECT MAX(id) FROM comentarios));
+
+
+-- ============================================================
+-- G. PQRS 
+-- ============================================================
+INSERT INTO pqr (codigo_radicado, usuario_id, reserva_id, tipo, descripcion, estado, respuesta)
+SELECT 
+    'RAD-2026-' || LPAD(i::text, 4, '0') AS codigo_radicado,
+    r.usuario_id,
+    r.id AS reserva_id,
+    (ARRAY['PETICION', 'QUEJA', 'RECLAMO', 'SUGERENCIA']::tipo_pqr[])[((i - 1) % 4) + 1] AS tipo,
+    (ARRAY[
+        'Solicito la actualización del comprobante de pago con el IVA detallado.',
+        'Inconveniente con la asignación del asiento en el transporte de traslado.',
+        'Solicitud de reprogramación de la fecha de salida por motivos personales.',
+        'Sugerencia para incluir más opciones vegetarianas en el itinerario.',
+        'Reclamo referente a la demora en la entrega de las confirmaciones.',
+        'Consulta sobre la política de equipaje permitido para el itinerario.'
+    ])[((i - 1) % 6) + 1] AS descripcion,
+    (ARRAY['PENDIENTE', 'EN_PROCESO', 'RESUELTO', 'CERRADO']::estado_pqr[])[((i - 1) % 4) + 1] AS estado,
+    CASE 
+        WHEN ((i - 1) % 4) IN (2, 3) THEN 'Su solicitud ha sido revisada y procesada por el equipo de soporte.'
+        ELSE NULL 
+    END AS respuesta
+FROM (
+   
+    SELECT id, usuario_id, ROW_NUMBER() OVER () AS i
+    FROM reservas
+    LIMIT 13
+) r;
+
+SELECT setval('pqr_id_seq', (SELECT MAX(id) FROM pqr));

@@ -1161,9 +1161,15 @@ def responder_pqr(pqr_id):
 
     datos = request.get_json() or {}
     respuesta_texto = datos.get("respuesta", "").strip()
+    nuevo_estado = datos.get("estado", "RESUELTO").strip().upper()
 
     if not respuesta_texto:
         return jsonify({"error": "La respuesta no puede estar vacía"}), 400
+
+    if nuevo_estado not in ["EN REVISIÓN", "EN REVISION", "RESUELTO"]:
+        nuevo_estado = "RESUELTO"
+
+    estado_db = "EN REVISION" if "REVISI" in nuevo_estado else "RESUELTO"
 
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
@@ -1171,17 +1177,17 @@ def responder_pqr(pqr_id):
     try:
         cur.execute("""
             UPDATE pqr
-            SET respuesta = %s, estado = 'RESUELTO'::estado_pqr
+            SET respuesta = %s, estado = %s::estado_pqr
             WHERE id = %s
-            RETURNING id, codigo_radicado;
-        """, (respuesta_texto, pqr_id))
+            RETURNING id, codigo_radicado, estado;
+        """, (respuesta_texto, estado_db, pqr_id))
         
         pqr_actualizada = cur.fetchone()
         if not pqr_actualizada:
             return jsonify({"error": "No se encontró la PQR a responder"}), 404
 
         conn.commit()
-        return jsonify({"mensaje": "PQR respondida con éxito"}), 200
+        return jsonify({"mensaje": "PQR actualizada con éxito"}), 200
 
     except Exception as e:
         conn.rollback()
