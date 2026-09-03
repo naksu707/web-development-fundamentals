@@ -9,6 +9,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="css/estilos.css">
+    <link rel="stylesheet" href="css/pqr.css">
 </head>
 <body class="d-flex flex-column min-vh-100">
 
@@ -25,7 +26,7 @@
             <div class="collapse navbar-collapse mt-3 mt-lg-0" id="navbarVolaris">
                 <nav class="nav-links ms-auto d-flex flex-column flex-lg-row align-items-center align-items-lg-center justify-content-center justify-content-lg-end text-center text-lg-start gap-3 gap-lg-4 pb-3 pb-lg-0">
                     <a href="/volaris/frontend/viajes.html" class="nav-link-custom text-nowrap">Explorar Viajes</a>
-                    <a href="/volaris/frontend/pqr.html" class="nav-link-custom text-nowrap">Soporte y Reseñas</a>
+                    <a href="/volaris/frontend/pqr.html" class="nav-link-custom active text-nowrap">Soporte y Reseñas</a>
                     <a href="/volaris/frontend/tendencias.html" class="nav-link-custom text-nowrap">Tendencias</a>
                     <div id="user-session-container" class="ms-lg-2">
                         <a href="login.html" class="btn btn-volaris px-4 fw-semibold text-nowrap" id="btn-login">Iniciar sesión</a>
@@ -34,7 +35,179 @@
             </div>
         </div>
     </header>
+    <main class="container py-5 my-2 flex-grow-1">
+        <h1 class="fw-bold text-dark mb-4 display-5">PQR Y Reseñas</h1>
+        <div class="row g-5">
+            <section class="col-lg-6" id="col-pqr">
+                <h2 class="h3 fw-bold mb-4 text-dark">Preguntas frecuentes</h2>
+                <div class="mb-4">
+                    <p class="fw-semibold mb-1 fs-5 text-dark">¿Cómo puedo cancelar o reprogramar mi reserva?</p>
+                    <p class="text-muted fst-italic">
+                        <span class="fw-semibold">Respuesta corta:</span> Puedes gestionar tus fechas desde tu perfil en la sección "Mis Viajes" con hasta 48 horas de anticipación.
+                    </p>
+                </div>
+                <div class="mb-4">
+                    <p class="fw-semibold mb-1 fs-5 text-dark">¿Qué métodos de pago aceptan?</p>
+                    <p class="text-muted fst-italic">
+                        <span class="fw-semibold">Respuesta corta:</span> Aceptamos tarjetas de crédito, débito, PSE y pagos en efectivo a través de puntos autorizados.
+                    </p>
+                </div>
+                <div class="mb-4">
+                    <p class="fw-semibold mb-1 fs-5 text-dark">¿Los planes incluyen seguro de viaje?</p>
+                    <p class="text-muted fst-italic">
+                        <span class="fw-semibold">Respuesta corta:</span> Todos nuestros planes cuentan con cobertura médica básica durante la experiencia.
+                    </p>
+                </div>
+                <div class="mt-5 pt-3" id="bloque-redactar-pqr">
+                    <p class="fw-semibold fs-5 mb-3 text-dark">¿Tienes algún requerimiento especial o inconveniente con tu servicio?</p>
+                    <button class="btn btn-danger px-4 py-2 fw-semibold rounded-3 shadow-sm" data-bs-toggle="modal" data-bs-target="#modalPQR" id="btn-abrir-pqr">
+                        Redactar tu PQR
+                    </button>
+                </div>
+            </section>
+            <section class="col-lg-6" id="col-resenas">
+                <div class="d-flex align-items-center gap-3 mb-2">
+                    <h2 class="h3 fw-bold mb-0 text-dark" id="titulo-seccion-resenas">Escribe tus reseñas</h2>
+                    <button class="btn btn-secondary rounded-circle d-flex align-items-center justify-content-center p-0" style="width: 32px; height: 32px;" data-bs-toggle="modal" data-bs-target="#modalNuevaResena" id="btn-crear-resena" title="Añadir reseña" disabled>
+                        <i class="fa-solid fa-plus fs-6"></i>
+                    </button>
+                </div>
+                <p class="text-muted mb-4 fs-6" id="estado-resenas">Actualmente no tienes reseñas pendientes</p>
+                <div id="lista-resenas"></div>
+            </section>
+        </div>
+        <section class="mt-5 pt-5 border-top d-none" id="seccion-estado-pqr-cliente">
+            <h2 class="h3 fw-bold mb-4 text-dark">Estado de tus PQR radicadas</h2>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Código Radicado</th>
+                            <th>Tipo</th>
+                            <th>Descripción</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Respuesta de la Agencia</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-estado-pqr-cliente">
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+    <div class="modal fade" id="modalPQR" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Radicar PQR</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formPQR">
+                        <div id="campos-invitado-pqr" class="d-none">
+                            <div class="row g-2 mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Nombre completo</label>
+                                    <input type="text" class="form-control" id="pqrNombre" placeholder="Tu nombre">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-semibold small">Correo electrónico</label>
+                                    <input type="email" class="form-control" id="pqrEmail" placeholder="correo@ejemplo.com">
+                                </div>
+                            </div>
+                            <div class="row g-2 mb-3">
+                                <div class="col-5">
+                                    <label class="form-label fw-semibold small">Tipo Doc.</label>
+                                    <select class="form-select" id="pqrTipoDoc">
+                                        <option value="CC" selected>CC</option>
+                                        <option value="CE">CE</option>
+                                        <option value="PASAPORTE">PASAPORTE</option>
+                                        <option value="NIT">NIT</option>
+                                    </select>
+                                </div>
+                                <div class="col-7">
+                                    <label class="form-label fw-semibold small">Número Documento</label>
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="pqrNumDoc" placeholder="123456789">
+                                        <button class="btn btn-outline-secondary" type="button" id="btnBuscarReservasInvitado" title="Buscar Reservas">
+                                            <i class="fa-solid fa-magnifying-glass"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-3" id="bloque-reserva-pqr">
+                            <label for="selectReservaPQR" class="form-label fw-semibold">Seleccionar Reserva Asocidada</label>
+                            <select class="form-select" id="selectReservaPQR" required>
+                                <option value="" selected disabled>Ingresa tu documento para cargar reservas...</option>
+                            </select>
+                            <div class="form-text text-danger d-none" id="msg-no-reservas">
+                                No se encontraron reservas registradas para este documento.
+                            </div>
+                        </div>
 
+                        <div class="mb-3">
+                            <label for="tipoPQR" class="form-label fw-semibold">Tipo de Solicitud</label>
+                            <select class="form-select" id="tipoPQR" required>
+                                <option value="" selected disabled>Selecciona una opción</option>
+                                <option value="PETICION">Petición</option>
+                                <option value="QUEJA">Queja</option>
+                                <option value="RECLAMO">Reclamo</option>
+                                <option value="SUGERENCIA">Sugerencia</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="descripcionPQR" class="form-label fw-semibold">Descripción</label>
+                            <textarea class="form-control" id="descripcionPQR" rows="4" placeholder="Describe detalladamente tu solicitud..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 pt-2">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger fw-semibold px-4" id="btnSubmitPQR">Enviar PQR</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal fade" id="modalNuevaResena" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold">Calificar Viaje Completado</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formResena">
+                        <div class="mb-3">
+                            <label for="selectViajePendiente" class="form-label fw-semibold">Selecciona el Viaje Completado</label>
+                            <select class="form-select" id="selectViajePendiente" required>
+                                <option value="" selected disabled>Cargando viajes pendientes...</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold d-block">Calificación</label>
+                            <div class="text-warning fs-4 d-flex gap-1" id="starRating">
+                                <i class="fa-regular fa-star cursor-pointer" data-star="1"></i>
+                                <i class="fa-regular fa-star cursor-pointer" data-star="2"></i>
+                                <i class="fa-regular fa-star cursor-pointer" data-star="3"></i>
+                                <i class="fa-regular fa-star cursor-pointer" data-star="4"></i>
+                                <i class="fa-regular fa-star cursor-pointer" data-star="5"></i>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="mensajeResena" class="form-label fw-semibold">Comentario</label>
+                            <textarea class="form-control" id="mensajeResena" rows="3" placeholder="Escribe tu experiencia con el servicio..." required></textarea>
+                        </div>
+                        <div class="d-flex justify-content-end gap-2 pt-2">
+                            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                            <button type="submit" class="btn btn-danger fw-semibold px-4">Publicar Reseña</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <footer class="footer mt-auto py-4 bg-light text-center text-muted">
         <div class="container">
             <div class="social-links d-flex justify-content-center align-items-center gap-3 mb-3">
@@ -49,8 +222,9 @@
             </div>
         </div>
     </footer>
-
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="js/script.js"></script>
+    <script src="js/pqr.js"></script>
 </body>
 </html>

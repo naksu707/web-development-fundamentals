@@ -8,6 +8,8 @@ import psycopg2
 import psycopg2.extras
 from db import get_db_connection
 from werkzeug.utils import secure_filename
+import random
+import string
 
 app = Flask(__name__)
 CORS(app, origins=["http://127.0.0.1:5500", "http://localhost:5500"])
@@ -103,24 +105,33 @@ def registrar_usuario():
     if rol not in ["CLIENTE", "AGENCIA"]:
         return jsonify({"error": "El tipo de usuario seleccionado no es válido."}), 400
 
-    imagen_url = None
-    if 'imagen' in request.files:
-        file = request.files['imagen']
-        if file and file.filename != '':
-            filename = secure_filename(f"{numero_doc}_{file.filename}")
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            imagen_url = f"/uploads/{filename}"
-
-    password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
-
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
     try:
+        if rol == "AGENCIA" or tipo_doc == "NIT":
+            cur.execute("SELECT id FROM agencias WHERE nit = %s;", (numero_doc,))
+            agencia_existente = cur.fetchone()
+            
+            if not agencia_existente:
+                return jsonify({
+                    "error": "El NIT ingresado no existe, valida nuevamente con un NIT ya inscrito"
+                }), 400
+
         cur.execute("SELECT id FROM usuarios WHERE email = %s;", (email,))
         if cur.fetchone():
             return jsonify({"error": "El correo electrónico ingresado ya se encuentra registrado."}), 409
+
+        imagen_url = None
+        if 'imagen' in request.files:
+            file = request.files['imagen']
+            if file and file.filename != '':
+                filename = secure_filename(f"{numero_doc}_{file.filename}")
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(file_path)
+                imagen_url = f"/uploads/{filename}"
+
+        password_hash = bcrypt.generate_password_hash(password).decode("utf-8")
 
         cur.execute(
             """
@@ -806,6 +817,424 @@ def obtener_detalle_reserva(identificador):
         cur.close()
         conn.close()
 
+# ==========================================
+# HU-08: GESTIÓN Y PUBLICACIÓN DE RESEÑAS
+# ==========================================
+@app.route("/api/resenas", methods=["GET"])
+def obtener_resenas():
+    auth_header = request.headers.get("Authorization")
+    
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"rol": "INVITADO", "resenas": [], "pendientes": []}), 200
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+        rol = str(payload.get("rol", "")).strip().upper()
+    except jwt.PyJWTError:
+        return jsonify({"rol": "INVITADO", "resenas": [], "pendientes": []}), 200
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        if rol == "AGENCIA":
+            
+            cur.execute("""
+                SELECT c.id, c.calificacion, c.mensaje AS comentario, 
+                       TO_CHAR(c.fecha, 'HH12:MI AM / Month DD, YYYY') AS fecha,
+                       v.destino AS titulo_viaje, v.imagen_url
+                FROM comentarios c
+                JOIN viajes v ON c.viaje_id = v.id
+                WHERE v.agencia_id = %s
+                ORDER BY c.fecha DESC
+                LIMIT 10;
+            """, (usuario_id,))
+            resenas = cur.fetchall()
+            return jsonify({"rol": "AGENCIA", "resenas": resenas, "pendientes": []}), 200
+
+        else: 
+           
+            cur.execute("""
+                SELECT c.id, c.calificacion, c.mensaje AS comentario, 
+                       TO_CHAR(c.fecha, 'HH12:MI AM / Month DD, YYYY') AS fecha,
+                       v.destino AS titulo_viaje, v.imagen_url
+                FROM comentarios c
+                JOIN viajes v ON c.viaje_id = v.id
+                WHERE c.usuario_id = %s
+                ORDER BY c.fecha DESC;
+            """, (usuario_id,))
+            resenas = cur.fetchall()
+
+            cur.execute("""
+                SELECT DISTINCT v.id, v.destino
+                FROM reservas r
+                JOIN viajes v ON r.viaje_id = v.id
+                WHERE r.usuario_id = %s 
+                  AND r.estado = 'COMPLETADA'
+                  AND v.id NOT IN (SELECT viaje_id FROM comentarios WHERE usuario_id = %s);
+            """, (usuario_id, usuario_id))
+            pendientes = cur.fetchall()
+
+            return jsonify({"rol": "CLIENTE", "resenas": resenas, "pendientes": pendientes}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en obtener_resenas: {e}")
+        return jsonify({"rol": "INVITADO", "resenas": [], "pendientes": []}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/api/resenas", methods=["POST"])
+def crear_resena():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "No autorizado"}), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify({"error": "Token inválido"}), 401
+
+    datos = request.get_json() or {}
+    viaje_id = datos.get("viaje_id")
+    calificacion = datos.get("calificacion")
+    mensaje = datos.get("mensaje", "").strip()
+
+    if not viaje_id or not calificacion or not mensaje:
+        return jsonify({"error": "Todos los campos son obligatorios"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            INSERT INTO comentarios (usuario_id, viaje_id, calificacion, mensaje, fecha)
+            VALUES (%s, %s, %s, %s, CURRENT_TIMESTAMP);
+        """, (usuario_id, viaje_id, calificacion, mensaje))
+        conn.commit()
+        return jsonify({"mensaje": "Reseña registrada con éxito"}), 201
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al guardar reseña: {e}")
+        return jsonify({"error": "Error interno del servidor"}), 500
+    finally:
+        cur.close()
+        conn.close()
+        
+# ==========================================
+# HU-09: RADICACIÓN E INTEGRACIÓN DE PQR
+# ==========================================
+@app.route("/api/pqr/reservas-usuario", methods=["GET"])
+def obtener_reservas_pqr_usuario():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify([]), 200
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify([]), 200
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT r.id AS reserva_id, r.codigo, r.estado, 
+                   v.destino, TO_CHAR(v.fecha_salida, 'YYYY-MM-DD') AS fecha_salida
+            FROM reservas r
+            JOIN viajes v ON r.viaje_id = v.id
+            WHERE r.usuario_id = %s
+            ORDER BY r.fecha_reserva DESC;
+        """, (usuario_id,))
+        return jsonify(cur.fetchall()), 200
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al obtener reservas PQR usuario: {e}")
+        return jsonify([]), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route("/api/pqr/reservas-documento/<string:numero_doc>", methods=["GET"])
+def obtener_reservas_por_documento(numero_doc):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT r.id AS reserva_id, r.codigo, r.estado, u.id AS usuario_id,
+                   v.destino, TO_CHAR(v.fecha_salida, 'YYYY-MM-DD') AS fecha_salida
+            FROM reservas r
+            JOIN usuarios u ON r.usuario_id = u.id
+            JOIN viajes v ON r.viaje_id = v.id
+            WHERE u.numero_doc = %s
+            ORDER BY r.fecha_reserva DESC;
+        """, (numero_doc.strip(),))
+        
+        reservas = cur.fetchall()
+        if not reservas:
+            return jsonify({"mensaje": "No se encontraron reservas asociadas al documento.", "reservas": []}), 404
+
+        return jsonify({"reservas": reservas, "usuario_id": reservas[0]["usuario_id"]}), 200
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al obtener reservas por documento: {e}")
+        return jsonify({"error": "Error al consultar las reservas"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route("/api/pqr", methods=["POST"])
+def radicar_pqr():
+    datos = request.get_json() or {}
+    tipo = datos.get("tipo", "").strip().upper()
+    descripcion = datos.get("descripcion", "").strip()
+    reserva_id = datos.get("reserva_id")
+    usuario_id_invitado = datos.get("usuario_id")
+
+    if not tipo or not descripcion:
+        return jsonify({"error": "El tipo y la descripción son obligatorios"}), 400
+
+    auth_header = request.headers.get("Authorization")
+    usuario_id = None
+
+    if auth_header and auth_header.startswith("Bearer "):
+        try:
+            token = auth_header.split(" ")[1]
+            payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+            usuario_id = payload.get("id")
+        except jwt.PyJWTError:
+            pass
+
+    if not usuario_id and usuario_id_invitado:
+        usuario_id = usuario_id_invitado
+
+    codigo_radicado = "PQR-" + ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            INSERT INTO pqr (codigo_radicado, usuario_id, reserva_id, tipo, descripcion, estado)
+            VALUES (%s, %s, %s, %s::tipo_pqr, %s, 'PENDIENTE'::estado_pqr)
+            RETURNING codigo_radicado;
+        """, (codigo_radicado, usuario_id, reserva_id if reserva_id else None, tipo, descripcion))
+        
+        nuevo_radicado = cur.fetchone()["codigo_radicado"]
+        conn.commit()
+
+        return jsonify({
+            "mensaje": "PQR radicada con éxito",
+            "codigo_radicado": nuevo_radicado
+        }), 201
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error en radicar_pqr: {e}")
+        return jsonify({"error": "Error al guardar la PQR"}), 500
+    finally:
+        cur.close()
+        conn.close()
+        
+# ==========================================
+# HU-10: SEGUIMIENTO Y RESPUESTA DE PQR
+# ==========================================
+@app.route("/api/pqr/agencia/pendientes", methods=["GET"])
+def obtener_pqrs_pendientes_agencia():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify([]), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify([]), 401
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("SELECT numero_doc FROM usuarios WHERE id = %s;", (usuario_id,))
+        usr = cur.fetchone()
+        
+        if not usr or not usr.get("numero_doc"):
+            return jsonify([]), 200
+
+        nit_agencia = usr["numero_doc"].strip()
+
+        cur.execute("""
+            SELECT p.id, p.codigo_radicado, p.tipo, p.descripcion, p.estado,
+                   COALESCE(u.nombre, 'Invitado') AS cliente_nombre, 
+                   COALESCE(u.apellido, '') AS cliente_apellido,
+                   v.destino, TO_CHAR(p.fecha_radicacion, 'YYYY-MM-DD') AS fecha
+            FROM pqr p
+            JOIN reservas r ON p.reserva_id = r.id
+            JOIN viajes v ON r.viaje_id = v.id
+            JOIN agencias a ON v.agencia_id = a.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE a.nit = %s 
+              AND p.respuesta IS NULL
+            ORDER BY p.id DESC;
+        """, (nit_agencia,))
+        
+        pqrs = cur.fetchall()
+        return jsonify(pqrs), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al obtener PQRs pendientes para agencia: {e}")
+        return jsonify([]), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/api/pqr/agencia/respondidas", methods=["GET"])
+def obtener_pqrs_respondidas_agencia():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify([]), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify([]), 401
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("SELECT numero_doc FROM usuarios WHERE id = %s;", (usuario_id,))
+        usr = cur.fetchone()
+        
+        if not usr or not usr.get("numero_doc"):
+            return jsonify([]), 200
+
+        nit_agencia = usr["numero_doc"].strip()
+
+        cur.execute("""
+            SELECT p.id, p.codigo_radicado, p.tipo, p.descripcion, p.estado, p.respuesta,
+                   COALESCE(u.nombre, 'Cliente') AS cliente_nombre, 
+                   COALESCE(u.apellido, '') AS cliente_apellido,
+                   v.destino
+            FROM pqr p
+            JOIN reservas r ON p.reserva_id = r.id
+            JOIN viajes v ON r.viaje_id = v.id
+            JOIN agencias a ON v.agencia_id = a.id
+            LEFT JOIN usuarios u ON p.usuario_id = u.id
+            WHERE a.nit = %s 
+              AND p.respuesta IS NOT NULL
+            ORDER BY p.id DESC;
+        """, (nit_agencia,))
+        
+        pqrs = cur.fetchall()
+        return jsonify(pqrs), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al obtener PQRs respondidas por agencia: {e}")
+        return jsonify([]), 500
+    finally:
+        cur.close()
+        conn.close()
+
+
+@app.route("/api/pqr/<int:pqr_id>/responder", methods=["PUT"])
+def responder_pqr(pqr_id):
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify({"error": "No autorizado"}), 401
+
+    datos = request.get_json() or {}
+    respuesta_texto = datos.get("respuesta", "").strip()
+
+    if not respuesta_texto:
+        return jsonify({"error": "La respuesta no puede estar vacía"}), 400
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            UPDATE pqr
+            SET respuesta = %s, estado = 'RESUELTO'::estado_pqr
+            WHERE id = %s
+            RETURNING id, codigo_radicado;
+        """, (respuesta_texto, pqr_id))
+        
+        pqr_actualizada = cur.fetchone()
+        if not pqr_actualizada:
+            return jsonify({"error": "No se encontró la PQR a responder"}), 404
+
+        conn.commit()
+        return jsonify({"mensaje": "PQR respondida con éxito"}), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al responder PQR: {e}")
+        return jsonify({"error": "Error al guardar la respuesta"}), 500
+    finally:
+        cur.close()
+        conn.close()
+
+@app.route("/api/pqr/cliente", methods=["GET"])
+def obtener_pqrs_cliente():
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        return jsonify([]), 401
+
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        usuario_id = payload.get("id")
+    except jwt.PyJWTError:
+        return jsonify([]), 401
+
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+    try:
+        cur.execute("""
+            SELECT DISTINCT 
+                p.codigo_radicado, 
+                p.tipo, 
+                p.descripcion, 
+                p.estado, 
+                COALESCE(p.respuesta, 'Pendiente de respuesta por la agencia') AS respuesta,
+                TO_CHAR(p.fecha_radicacion, 'YYYY-MM-DD') AS fecha
+            FROM pqr p
+            LEFT JOIN reservas r ON p.reserva_id = r.id
+            WHERE p.usuario_id = %s OR r.usuario_id = %s
+            ORDER BY p.codigo_radicado DESC;
+        """, (usuario_id, usuario_id))
+        
+        pqrs = cur.fetchall()
+        return jsonify(pqrs), 200
+
+    except Exception as e:
+        conn.rollback()
+        print(f"Error al obtener PQR cliente: {e}")
+        return jsonify([]), 500
+
+    finally:
+        cur.close()
+        conn.close()
+
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000)
+    

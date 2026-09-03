@@ -91,16 +91,14 @@ async function configurarVistaCliente(usuario, token) {
 }
 
 // ------------------------------------------
-// VISTA AGENCIA
+// VISTA AGENCIA (HU-10 INTEGRADA)
 // ------------------------------------------
 async function configurarVistaAgencia(usuario, token) {
     document.getElementById("titulo-seccion-derecha").textContent = "Solicitudes pendientes";
     document.getElementById("titulo-seccion-inferior").textContent = "Tus respuestas y soluciones";
 
-    const API_RESERVAS = `http://127.0.0.1:5000/api/reservas/usuario/${usuario.id}`;
-
     try {
-        const res = await fetch(API_RESERVAS, {
+        const res = await fetch(`http://127.0.0.1:5000/api/reservas/usuario/${usuario.id}`, {
             headers: { "Authorization": `Bearer ${token}` }
         });
         if (res.ok) {
@@ -111,8 +109,111 @@ async function configurarVistaAgencia(usuario, token) {
         console.warn("No se pudo cargar info detallada del usuario:", e);
     }
 
-    document.getElementById("contenedor-proximos-viajes").innerHTML = `<p class="text-muted small">No hay solicitudes pendientes.</p>`;
-    document.getElementById("contenedor-historial-viajes").innerHTML = `<p class="text-muted small">No hay respuestas registradas.</p>`;
+    cargarSolicitudesPendientesAgencia(token);
+    cargarRespuestasAgencia(token);
+}
+
+async function cargarSolicitudesPendientesAgencia(token) {
+    const cont = document.getElementById("contenedor-proximos-viajes");
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/pqr/agencia/pendientes", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const pqrs = await res.json();
+
+        if (!res.ok || pqrs.length === 0) {
+            cont.innerHTML = `<p class="text-muted small">No hay solicitudes pendientes.</p>`;
+            return;
+        }
+
+        cont.innerHTML = pqrs.map(p => `
+            <div class="p-3 bg-white rounded-3 shadow-sm border mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-danger">${p.codigo_radicado}</span>
+                    <span class="badge bg-warning text-dark">${p.tipo}</span>
+                </div>
+                <p class="small text-dark mb-1"><strong>Cliente:</strong> ${p.cliente_nombre || 'Invitado'} ${p.cliente_apellido || ''}</p>
+                <p class="small text-muted mb-2"><strong>Detalle:</strong> ${p.descripcion}</p>
+                <button class="btn btn-volaris btn-sm fw-semibold px-3" onclick="abrirModalResponderPQR(${p.id}, '${p.codigo_radicado}', '${token}')">
+                    Responder PQR
+                </button>
+            </div>
+        `).join('');
+
+    } catch (e) {
+        console.error("Error cargando solicitudes pendientes:", e);
+        cont.innerHTML = `<p class="text-muted small">No hay solicitudes pendientes.</p>`;
+    }
+}
+
+function abrirModalResponderPQR(pqrId, codigoRadicado, token) {
+    Swal.fire({
+        title: `Responder PQR ${codigoRadicado}`,
+        input: 'textarea',
+        inputLabel: 'Escribe la respuesta oficial para el cliente:',
+        inputPlaceholder: 'Ingresa los detalles de la solución o respuesta...',
+        showCancelButton: true,
+        confirmButtonText: 'Enviar Respuesta',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#ff3838',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return 'La respuesta no puede estar vacía.';
+            }
+        }
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const res = await fetch(`http://127.0.0.1:5000/api/pqr/${pqrId}/responder`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ respuesta: result.value.trim() })
+                });
+
+                if (res.ok) {
+                    Swal.fire('Respuesta enviada', 'La PQR ha sido marcada como resuelta.', 'success')
+                        .then(() => location.reload());
+                } else {
+                    Swal.fire('Error', 'No se pudo enviar la respuesta.', 'error');
+                }
+            } catch (err) {
+                console.error("Error al responder PQR:", err);
+            }
+        }
+    });
+}
+
+async function cargarRespuestasAgencia(token) {
+    const cont = document.getElementById("contenedor-historial-viajes");
+    try {
+        const res = await fetch("http://127.0.0.1:5000/api/pqr/agencia/respondidas", {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const pqrs = await res.json();
+
+        if (!res.ok || pqrs.length === 0) {
+            cont.innerHTML = `<p class="text-muted small">No hay respuestas registradas.</p>`;
+            return;
+        }
+
+        cont.innerHTML = pqrs.map(p => `
+            <div class="p-3 bg-white rounded-3 shadow-sm border mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-dark">${p.codigo_radicado}</span>
+                    <span class="badge bg-success">RESUELTO</span>
+                </div>
+                <p class="small text-muted mb-1"><strong>Cliente:</strong> ${p.cliente_nombre || 'Cliente'}</p>
+                <p class="small text-dark mb-0"><strong>Respuesta enviada:</strong> ${p.respuesta}</p>
+            </div>
+        `).join('');
+
+    } catch (e) {
+        console.error("Error cargando respuestas de agencia:", e);
+        cont.innerHTML = `<p class="text-muted small">No hay respuestas registradas.</p>`;
+    }
 }
 
 // ------------------------------------------

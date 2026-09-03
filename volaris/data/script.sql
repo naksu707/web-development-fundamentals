@@ -89,7 +89,8 @@ CREATE TABLE pqr (
     tipo tipo_pqr NOT NULL,
     descripcion TEXT NOT NULL,
     estado estado_pqr DEFAULT 'PENDIENTE',
-    respuesta TEXT
+    respuesta TEXT,
+    fecha_radicacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE TABLE estadisticas_mensuales (
