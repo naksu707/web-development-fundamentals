@@ -45,11 +45,11 @@ To ensure all features work properly (especially dynamic JSON loading, dynamic r
 2. Start the local server using one of the following methods:
    - Click the **Go Live** button in the bottom status bar:
      <p align="center">
-       <img src="/img/go-live.png" width="300" alt="Go Live Option">
+       <img src="/z-img/go-live.png" width="300" alt="Go Live Option">
      </p>
    - Or right-click the `index.html` file and select **Open with Live Server**:
      <p align="center">
-       <img src="/img/go-live-2.png" width="400" alt="Open with Live Server Option">
+       <img src="/z-img/go-live-2.png" width="400" alt="Open with Live Server Option">
      </p>
 
 ---
@@ -63,7 +63,7 @@ An initial web page created to practice fundamental HTML layout concepts, text h
 - **Focus:** Basic markup, text styling, colors, and the Box Model.
 
 <p align="center">
-    <img src="/img/preview-kaisa.png" width="750" alt="First Web Page Preview">
+    <img src="/z-img/preview-kaisa.png" width="750" alt="First Web Page Preview">
 </p>
 
 ---
@@ -75,7 +75,7 @@ An informational web page dedicated to the K-pop group BTS. Features stylized vi
 - **Focus:** Semantic layout, refined visual styling, web typography, and component arrangement.
 
 <p align="center">
-    <img src="/img/preview-bts.png" width="750" alt="Bangtanpedia Preview">
+    <img src="/z-img/preview-bts.png" width="750" alt="Bangtanpedia Preview">
 </p>
 
 ---
@@ -90,7 +90,7 @@ A complete interactive web application for a traditional stuffed arepas restaura
   - **Fully Responsive:** Layouts tailored for desktop, tablet, and mobile views.
 
 <p align="center">
-  <img src="/img/preview-arepa.png" width="750" alt="Arepas de la Casa - Desktop Preview">
+  <img src="/z-img/preview-arepa.png" width="750" alt="Arepas de la Casa - Desktop Preview">
 </p>
 
 ---
@@ -117,5 +117,5 @@ A full-stack web platform designed for travel and trip management. It allows use
 > ```
 
 <p align="center">
-    <img src="/img/preview-volaris.png" width="750" alt="Volaris Preview">
+    <img src="/z-img/preview-volaris.png" width="750" alt="Volaris Preview">
 </p>
