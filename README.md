@@ -43,14 +43,38 @@ To ensure all features work properly (especially dynamic JSON loading, dynamic r
 
 1. Open the project folder in **Visual Studio Code**.
 2. Start the local server using one of the following methods:
+
    - Click the **Go Live** button in the bottom status bar:
      <p align="center">
        <img src="/z-img/go-live.png" width="300" alt="Go Live Option">
      </p>
+
    - Or right-click the `index.html` file and select **Open with Live Server**:
      <p align="center">
        <img src="/z-img/go-live-2.png" width="400" alt="Open with Live Server Option">
      </p>
+
+---
+
+## How to Run the Volaris Environment
+
+To start the **Volaris Flask backend**, open a terminal in the project's root directory and run the appropriate command for your operating system:
+
+- **macOS:**
+  ```bash
+  python3 backend/app.py
+  ```
+
+- **Windows:**
+  ```bash
+  python backend/app.py
+  ```
+
+Once the server is running, open your browser and navigate to:
+
+`http://localhost:5000`
+
+To stop the server, press **Ctrl + C** in the terminal.
 
 ---
 
@@ -106,7 +130,7 @@ A full-stack web platform designed for travel and trip management. It allows use
 * **User Experience & Documentation:** Comprehensive User Stories (HU) documentation paired with detailed UI/UX mockups for landing pages, authentication, trends, and dual profile roles (Client and Agency).
 
 > **Note for Running the Project:**
-> To properly run this project, update your VS Code settings. Access the settings by pressing `Ctrl + Shift + P`, search for **Open User Settings (JSON)**, and add or update the following configuration:
+> To properly run this project, update your VS Code settings. Access the settings by pressing `Ctrl + Shift + P` or `Command + Shift + P` for MacoS, search for **Open User Settings (JSON)**, and add or update the following configuration:
 >
 > ```json
 > "liveServer.settings.ignoreFiles": [

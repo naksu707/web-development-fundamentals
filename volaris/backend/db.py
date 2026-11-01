@@ -1,14 +1,24 @@
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+#MACoS
 DB_CONFIG = {
     "host": "localhost",
     "database": "volaris_db",
     "user": "postgres",
-    "password": "toor",  
-    "port": 5435,             
-    "client_encoding": "WIN1252"
+    "password": "toor",
+    "port": 5435,
+    "client_encoding": "UTF8"
 }
+
+#Windows
+#DB_CONFIG = {
+#    "database": "volaris_db",
+#   "user": "postgres",
+#    "password": "toor",  
+#    "port": 5435,             
+#    "client_encoding": "WIN1252"
+#}
 
 def get_db_connection():
     conn = psycopg2.connect(**DB_CONFIG, cursor_factory=RealDictCursor)
