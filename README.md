@@ -143,3 +143,7 @@ A full-stack web platform designed for travel and trip management. It allows use
 <p align="center">
     <img src="/z-img/preview-volaris.png" width="750" alt="Volaris Preview">
 </p>
+
+> [!NOTE]
+> **Project status: Completed ✅**
+> This repository is finished and is no longer being updated. All projects were last verified to work correctly as of **November 1, 2026**. Later changes to browsers, libraries or dependencies may affect how some projects run.
