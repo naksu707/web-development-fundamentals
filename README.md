@@ -149,3 +149,9 @@ A full-stack web platform designed for travel and trip management. It allows use
 > [!NOTE]
 > **Project status: Completed ✅**
 > This repository is finished and is no longer being updated. All projects were last verified to work correctly as of **November 1, 2026**. Later changes to browsers, libraries or dependencies may affect how some projects run.
+
+<div align="center">
+
+Made by 💜 **[Maria Jose Ospina](https://github.com/naksu707)** 💜
+
+</div>
